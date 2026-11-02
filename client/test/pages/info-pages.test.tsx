@@ -8,7 +8,7 @@ const FEEDBACK = "https://github.com/marcovinir/pokeminigames-comentarios";
 
 /** Las 7 páginas, en el orden del pie: [texto del enlace, ruta, título de la página]. */
 const PAGES = [
-  ["Acerca de", "/acerca", "Acerca de PokeMiniGames"],
+  ["Acerca de", "/acerca", "Acerca de Rivalmon"],
   ["Contacto", "/contacto", "Contacto"],
   ["FAQ", "/faq", "Preguntas frecuentes"],
   ["Privacidad", "/privacidad", "Privacidad"],

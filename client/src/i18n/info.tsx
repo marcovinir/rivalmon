@@ -46,12 +46,12 @@ const PUBLIC_WARNING = "Las issues son públicas: no pongas tu correo, tu contra
 export const INFO_PAGES: Record<InfoSlug, InfoPageContent> = {
   acerca: {
     path: "/acerca",
-    title: "Acerca de PokeMiniGames",
+    title: "Acerca de Rivalmon",
     footerLabel: "Acerca de",
     body: (
       <>
         <p>
-          PokeMiniGames es una colección de minijuegos Pokémon para jugar 1 vs 1 con tus amigos, en tiempo real y desde el
+          Rivalmon es una colección de minijuegos Pokémon para jugar 1 vs 1 con tus amigos, en tiempo real y desde el
           navegador. Es gratis, no tiene anuncios y no hace falta instalar nada.
         </p>
         <p>
@@ -197,7 +197,7 @@ export const INFO_PAGES: Record<InfoSlug, InfoPageContent> = {
       <>
         <p>{UPDATED}</p>
         <List>
-          <li>PokeMiniGames es gratis y se ofrece tal cual, sin garantías: puede fallar, cambiar o cerrar en cualquier momento.</li>
+          <li>Rivalmon es gratis y se ofrece tal cual, sin garantías: puede fallar, cambiar o cerrar en cualquier momento.</li>
           <li>Juega limpio y con respeto. Los nombres de usuario ofensivos o que suplanten a otra persona pueden retirarse.</li>
           <li>No intentes romper el juego ni saturar el servidor.</li>
           <li>Al crear una cuenta aceptas lo que explica la página de Privacidad.</li>
@@ -212,7 +212,7 @@ export const INFO_PAGES: Record<InfoSlug, InfoPageContent> = {
     body: (
       <>
         <p>
-          PokeMiniGames es un proyecto de fans sin fines de lucro. Pokémon y sus personajes son marcas de Nintendo, Game Freak
+          Rivalmon es un proyecto de fans sin fines de lucro. Pokémon y sus personajes son marcas de Nintendo, Game Freak
           y The Pokémon Company; no hay relación con ellos ni respaldo suyo.
         </p>
         <p>
@@ -232,7 +232,7 @@ export const INFO_PAGES: Record<InfoSlug, InfoPageContent> = {
     footerLabel: "Apoya el proyecto",
     body: (
       <>
-        <p>PokeMiniGames es gratis y seguirá siéndolo. La mejor forma de apoyarlo:</p>
+        <p>Rivalmon es gratis y seguirá siéndolo. La mejor forma de apoyarlo:</p>
         <List>
           <li>Compártelo con tus amigos y juega con ellos.</li>
           <li>
