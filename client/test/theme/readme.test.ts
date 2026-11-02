@@ -30,7 +30,7 @@ describe.each([
   const text = read(path);
 
   it("lleva el nombre del proyecto como título y enlaza a la otra versión", () => {
-    expect(text.split("\n")[0]).toBe("# PokeMiniGames");
+    expect(text.split("\n")[0]).toBe("# Rivalmon");
     expect(text).not.toMatch(/Pokémon Minigames/);
     expect(text).toContain(`](${other})`);
   });
@@ -66,7 +66,7 @@ describe.each([
 describe("guía técnica (docs/guia-tecnica.md)", () => {
   it("conserva el detalle: fuentes, reducir movimiento, la API y los enlaces que funcionan", () => {
     const guide = read("docs/guia-tecnica.md");
-    expect(guide.split("\n")[0]).toBe("# PokeMiniGames: guía técnica");
+    expect(guide.split("\n")[0]).toBe("# Rivalmon: guía técnica");
     expect(guide).toMatch(/Fredoka/);
     expect(guide).toMatch(/reducir movimiento/);
     expect(guide).toContain("DELETE /auth/me");

@@ -1,6 +1,6 @@
 import type { AuctionConfig, DobleTipoConfig, RoomConfig, SilhouetteConfig } from "./types.js";
 
-/** Los minijuegos de PokeMiniGames. */
+/** Los minijuegos de Rivalmon. */
 export const GAME_KINDS = ["doble_tipo", "silueta", "subasta"] as const;
 export type GameKind = (typeof GAME_KINDS)[number];
 

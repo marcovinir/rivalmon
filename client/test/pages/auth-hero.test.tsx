@@ -10,7 +10,12 @@ const PAGES = [
   ["registro", <RegisterPage key="r" />, "Crear cuenta"],
 ] as const;
 
-describe("pantallas de acceso: la presentación de PokeMiniGames", () => {
+describe("pantallas de acceso: la presentación de Rivalmon", () => {
+  it.each(PAGES)("%s: arriba está el logo grande de Rivalmon", (_name, page) => {
+    renderWithServices(page);
+    expect(screen.getByRole("img", { name: "Rivalmon" })).toHaveAttribute("src", "/logo.svg");
+  });
+
   it.each(PAGES)("%s: el lema habla de minijuegos 1 vs 1 con amigos, no de un solo juego", (_name, page, heading) => {
     const { container } = renderWithServices(page);
     const lema = screen.getByText(/Minijuegos Pokémon para jugar/);

@@ -15,7 +15,7 @@ describe("detalles del tema Pokédex", () => {
 
   it("las luces no cambian el nombre accesible del enlace al lobby ni añaden texto", () => {
     const { container } = renderWithServices(<Header />);
-    expect(screen.getByRole("link", { name: "PokeMiniGames" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Rivalmon" })).toBeInTheDocument();
     expect(container.querySelector("[data-leds]")!.textContent).toBe("");
   });
 

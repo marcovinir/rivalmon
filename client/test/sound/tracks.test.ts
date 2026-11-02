@@ -15,7 +15,7 @@ function isMp3(file: string): boolean {
 describe("los temas de música", () => {
   it("son los que eligió Marco, en su orden", () => {
     // El inicio y las salas tienen un solo tema: el que hizo un amigo de Marco.
-    expect(LOBBY_TRACKS.map((t) => t.title)).toEqual(["Tema principal de PokeMiniGames"]);
+    expect(LOBBY_TRACKS.map((t) => t.title)).toEqual(["Tema principal de Rivalmon"]);
     expect(BATTLE_TRACKS.map((t) => t.title)).toEqual(["Porkymon Battle Theme", "8-Bit Battle Loop", "Chipped Urgency"]);
     expect(WIN_TRACK.title).toBe("Menu");
     expect(LOSE_TRACK.title).toBe("Game Over");

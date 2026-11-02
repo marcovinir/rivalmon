@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-const BASE_TITLE = "PokeMiniGames";
+const BASE_TITLE = "Rivalmon";
 
 /** El título de la pestaña en las páginas públicas (es lo primero que se lee, y lo que se ve al compartirlas). Al salir, vuelve al de siempre. */
 export function usePageTitle(title: string | null): void {

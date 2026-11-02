@@ -2,7 +2,6 @@ import { PLAYABLE_GAMES } from "@pokemon-minigames/shared";
 import { useState } from "react";
 import { Badge } from "../components/Badge";
 import { GameArt } from "../components/GameArt";
-import { LogoMark } from "../components/Logo";
 import { rise } from "../components/rise";
 import { AUTH_HERO_TEXT, GAME_CARDS, MENU_TEXT } from "../i18n/es";
 import { DOBLE_TIPO_EXAMPLES, pickCovers, pickRandom } from "./menu-art";
@@ -16,8 +15,8 @@ export function AuthHero({ random = Math.random }: { random?: () => number } = {
   const [covers] = useState(() => pickCovers(random));
   return (
     <div data-hero style={rise(0)} className="animate-rise flex flex-col gap-8">
-      <div className="flex items-center gap-4">
-        <LogoMark size={64} className="animate-beat" />
+      <div className="flex flex-col gap-4">
+        <img src="/logo.svg" alt="Rivalmon" width="240" height="120" className="h-auto w-44 sm:w-60" />
         <p className="font-display text-3xl font-semibold leading-tight sm:text-4xl">
           {AUTH_HERO_TEXT.lead} <span className="text-accent">{AUTH_HERO_TEXT.highlight}</span> {AUTH_HERO_TEXT.tail}
         </p>

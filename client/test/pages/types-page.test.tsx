@@ -218,6 +218,6 @@ describe("detalles de la tabla", () => {
 
   it("cambia el título de la pestaña", () => {
     renderAt("/tipos");
-    expect(document.title).toBe("Matriz de Tipos · PokeMiniGames");
+    expect(document.title).toBe("Matriz de Tipos · Rivalmon");
   });
 });

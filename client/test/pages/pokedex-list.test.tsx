@@ -417,6 +417,6 @@ describe("el resultado de filtrar", () => {
   it("cambia el título de la pestaña", async () => {
     renderList();
     await screen.findByRole("link", { name: /Charizard/ });
-    expect(document.title).toBe("Pokédex · PokeMiniGames");
+    expect(document.title).toBe("Pokédex · Rivalmon");
   });
 });

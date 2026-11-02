@@ -100,17 +100,17 @@ describe("cabecera del documento", () => {
   it("declara el icono, el color del navegador y las etiquetas para compartir el enlace", () => {
     expect(html).toMatch(/<link rel="icon" type="image\/svg\+xml" href="\/favicon\.svg"/);
     expect(html).toMatch(/<meta name="theme-color"/);
-    expect(html).toMatch(/<meta property="og:title" content="PokeMiniGames"/);
-    expect(html).toContain("<title>PokeMiniGames</title>");
+    expect(html).toMatch(/<meta property="og:title" content="Rivalmon"/);
+    expect(html).toContain("<title>Rivalmon</title>");
     // El nombre viejo no queda en ninguna parte visible de la página (ni título ni metadatos).
     expect(html).not.toMatch(/Pokémon Minigames/i);
     expect(html).toMatch(/<meta property="og:description" content="[^"]{20,}"/);
   });
 
-  it("el icono existe y es un SVG con la bola partida en dos colores", () => {
+  it("el icono existe y es un SVG con la bola de diseño propio", () => {
     const svg = read("public/favicon.svg");
     expect(svg).toContain("<svg");
-    expect(svg.match(/fill="#[0-9a-f]{6}"/gi)?.length ?? 0).toBeGreaterThanOrEqual(3);
+    for (const color of ["#2563d9", "#e5352b", "#ffcb05"]) expect(svg).toContain(color);
   });
 
   it("conserva el script que aplica el tema antes de pintar", () => {

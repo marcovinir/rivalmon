@@ -20,7 +20,7 @@ const MELODIC = "https://opengameart.org/content/15-melodic-rpg-chiptunes";
 
 /** La sala: el menú, los lobbies y la espera antes de empezar. Un solo tema, siempre el mismo. */
 export const LOBBY_TRACKS: readonly Track[] = [
-  { id: "tema-principal", title: "Tema principal de PokeMiniGames", src: "/audio/tema-principal.mp3", author: "Un amigo de Marco, creado con Gemini", license: "Cedida por su autor", page: null, loop: true },
+  { id: "tema-principal", title: "Tema principal de Rivalmon", src: "/audio/tema-principal.mp3", author: "Un amigo de Marco, creado con Gemini", license: "Cedida por su autor", page: null, loop: true },
 ];
 
 /** La partida, desde la cuenta atrás hasta la última ronda. */
