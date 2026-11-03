@@ -372,9 +372,16 @@ body::before {
   transform: scale(calc(1.5 * var(--sprite-fit, 1)));
 }
 .battle-sprite-back {
+  /* En móvil deja libre la franja y evita recortes; compensa el ajuste del GIF para no reducirlo dos veces. */
+  max-height: calc(48px / var(--sprite-fit, 1));
+  max-width: calc(72px / var(--sprite-fit, 1));
   transform: scale(calc(2 * var(--sprite-fit, 1)));
 }
 @media (min-width: 40rem) {
+  .battle-sprite-back {
+    max-height: none;
+    max-width: none;
+  }
   .battle-spot-front {
     left: 71%;
   }
@@ -529,7 +536,7 @@ body::before {
   z-index: 10;
   top: 4.5rem;
   left: 0.5rem;
-  right: 0.5rem;
+  width: 48%;
   margin: 0;
   padding: 0.25rem 0.5rem;
   border-radius: 0.5rem;
@@ -541,6 +548,12 @@ body::before {
   text-align: center;
   overflow-wrap: anywhere;
   pointer-events: none;
+}
+@media (min-width: 40rem) {
+  .battle-step {
+    right: 0.5rem;
+    width: auto;
+  }
 }
 @media (min-width: 64rem) {
   .battle-step {

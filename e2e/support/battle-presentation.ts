@@ -23,9 +23,9 @@ export async function battlePresentation(page: Page) {
   let wake: (() => void) | null = null;
   const send = (event: ServerEvent) => { queue.push(`42${JSON.stringify([event.name, event.payload])}`); wake?.(); };
   const room = (): RoomStateView => ({ code: "ABC234", serverNow: Date.now(), phase: "battle", config: { game: "subasta", traps: false }, mySeat: 1,
-    players: [{ seat: 1, username: "a".repeat(30), connected: true, totalStats: 0, teamSize: 2 }, { seat: 2, username: "b".repeat(30), connected: true, totalStats: 0, teamSize: 1 }],
+    players: [{ seat: 1, username: "a".repeat(30), connected: true, totalStats: 0, teamSize: 6 }, { seat: 2, username: "b".repeat(30), connected: true, totalStats: 0, teamSize: 1 }],
     myTeam: [], opponentTeam: [], roundsPlayed: 0, startsAt: null, opponentGraceEndsAt: null, round: null,
-    auction: { money: { 1: 0, 2: 0 }, teamSizes: { 1: 2, 2: 1 }, purchases: { 1: [], 2: [] }, lot: null, reveal: [], battle } });
+    auction: { money: { 1: 0, 2: 0 }, teamSizes: { 1: 6, 2: 1 }, purchases: { 1: [], 2: [] }, lot: null, reveal: [], battle } });
   await page.route("**/socket.io/**", async (route) => {
     const request = route.request();
     const sid = new URL(request.url()).searchParams.get("sid");
