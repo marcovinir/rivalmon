@@ -1,6 +1,6 @@
 # Subasta Pokémon: turnos claros y presentación por pasos
 
-Issue #59. **Propuesta pendiente de aprobación de Marco.** No se ha implementado el cambio del juego.
+Issue #59. **Spec aprobada por Marco el 2026-11-03.** Implementación en curso en el PR #70.
 
 ## Intención y alcance
 
@@ -25,9 +25,10 @@ Se conserva el aspecto del combate aprobado en las specs de [combate](2026-10-31
 
 - `BattleScreen.tsx` dibuja los equipos directamente desde `view.auction.battle`. El `room-state` posterior al `battle-turn` ya contiene todos los PS finales y los titulares cambiados, por lo que no espera al golpe correspondiente.
 - `useStrike` filtra únicamente `damage > 0`. No representa por pasos los fallos, los bloqueos ni el apoyo, y no comprueba explícitamente los indicadores de fallo/bloqueo al decidir una embestida.
-- El hook arranca al montarse con una clave de asalto/turno. Un registro conservado con esa misma clave puede volver a reproducirse al remontar la pantalla. Se escribirá primero la regresión que lo demuestre; todavía no se ha ejecutado esa prueba.
+- El hook arranca al montarse con una clave de asalto/turno. Un registro conservado con esa misma clave volvía a reproducirse al remontar la pantalla: confirmado con la regresión roja antes de corregirlo.
 - El servidor espera siempre `TURN_ANIMATION_MS = 3000`, independientemente de cambios, acciones y notas.
 - El contrato actual ya trae `switches`, las acciones ordenadas, `actorHp`, `targetHp`, y las notas de entrada, acción y cierre. No hace falta añadir información privada ni cambiar el payload público para presentar esta secuencia.
+- Durante la ejecución se confirmó otra ruta de PS adelantados: `afterChoice` encolaba una confirmación privada antes de resolver, pero el ejecutor de efectos ya leía el estado final. Se corrige publicando primero `battle-turn` cuando eligen los dos, con una regresión que falla con el orden anterior. La confirmación de quien elige primero sigue siendo privada.
 
 ## Propuesta de implementación
 

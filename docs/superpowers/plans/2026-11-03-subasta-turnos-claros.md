@@ -1,6 +1,6 @@
 # Plan propuesto: Subasta Pokémon, turnos claros (#59)
 
-**Pendiente de revisión de Marco.** Depende de aprobar la [spec](../specs/2026-11-03-subasta-turnos-claros-design.md). No se ha ejecutado este plan ni cambiado el código del juego.
+**Spec y plan aprobados por Marco el 2026-11-03.** Ejecución en curso según la [spec](../specs/2026-11-03-subasta-turnos-claros-design.md).
 
 ## 1. Reproducir los dos fallos de presentación
 

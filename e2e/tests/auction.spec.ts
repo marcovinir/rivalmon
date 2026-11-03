@@ -186,6 +186,30 @@ test("con «reducir movimiento», el destello del golpe sí dura", async ({ brow
   expect(duration).toBe("0.3s");
 });
 
+test("las señales de estado y stats siguen siendo visibles con reducir movimiento", async ({ browser }) => {
+  const visitor = await newPlayer(browser, "efectos");
+  try {
+    await visitor.page.emulateMedia({ reducedMotion: "reduce" });
+    await visitor.page.goto("/login");
+    const signals = await visitor.page.evaluate(() => ["battle-afflicted-burn", "battle-afflicted-poison", "battle-afflicted-paralysis", "battle-afflicted-sleep", "battle-boost-up", "battle-boost-down", "battle-heal"].map((name) => {
+      const element = document.createElement("div");
+      element.className = name;
+      document.body.append(element);
+      const style = getComputedStyle(element);
+      const result = { name, duration: style.animationDuration, animation: style.animationName, delay: style.animationDelay };
+      element.remove();
+      return result;
+    }));
+    for (const signal of signals) {
+      expect(signal.duration, signal.name).toBe("0.3s");
+      expect(signal.animation, signal.name).not.toBe("none");
+      expect(signal.delay, signal.name).toBe("0s");
+    }
+  } finally {
+    await visitor.context.close();
+  }
+});
+
 test("el menú ofrece la subasta", async ({ browser }) => {
   const ash = await newPlayer(browser, "ash");
   await register(ash);
