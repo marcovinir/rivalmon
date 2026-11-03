@@ -1,5 +1,6 @@
+import { readFileSync } from "node:fs";
 import { type Page, expect, test } from "@playwright/test";
-import { joinRoom, newPlayer, register } from "../support/app";
+import { joinRoom, newPlayer, playAsGuest, register } from "../support/app";
 
 /** La subasta en dos navegadores reales, sin trampas: el servidor sortea de verdad, así que se comprueba la estructura. */
 
@@ -187,4 +188,58 @@ test("el menú ofrece la subasta", async ({ browser }) => {
   await ash.page.goto("/");
   await ash.page.getByRole("article").filter({ hasText: "Subasta Pokémon" }).getByRole("link", { name: /Jugar/ }).click();
   await expect(ash.page.getByRole("switch", { name: "Siluetas trampa" })).toBeChecked();
+});
+
+test("la revelación conserva el contraste en los cuatro temas, en móvil y escritorio", async ({ browser }, testInfo) => {
+  const ash = await playAsGuest(browser, "contraste");
+  const misty = await playAsGuest(browser, "rival");
+  try {
+    const code = await createAuctionRoom(ash.page);
+    await joinRoom(misty.page, code);
+    const pages: [Page, Page] = [ash.page, misty.page];
+    const revealTitle = (page: Page) => page.getByRole("heading", { name: "¿Qué compró cada uno?" });
+    for (let turn = 0; turn < 80 && !(await revealTitle(ash.page).isVisible()); turn++) {
+      const inTurn = await pageInTurn(pages, revealTitle);
+      if (!inTurn) break;
+      // La transición de lote puede retirar el botón entre comprobarlo y pulsarlo.
+      await passButton(inTurn).click({ timeout: 2000 }).catch(() => undefined);
+      await inTurn.waitForTimeout(100);
+    }
+    for (const page of pages) await expect(revealTitle(page)).toBeVisible();
+
+    // Dos vistas simultáneas de la partida real: la auditoría no depende de esperar a que aparezcan los 12.
+    const audit = readFileSync(new URL("../../client/scripts/contrast-audit.js", import.meta.url), "utf8");
+    for (const [index, page] of pages.entries()) {
+      const width = index === 0 ? 375 : 1280;
+      await page.setViewportSize({ width, height: 900 });
+      await page.mouse.move(0, 0);
+      await expect.poll(() => page.locator("[data-reveal-entry] img").first().evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+      await page.addScriptTag({ content: audit });
+      const report = await page.evaluate(() => (window as unknown as { __contrastAuditAll(): Promise<Record<string, string[]>> }).__contrastAuditAll());
+      expect.soft(report, `${width} px: contraste del texto de la revelación`).toEqual({
+        "clasico/claro": [], "clasico/oscuro": [], "pokedex/claro": [], "pokedex/oscuro": [],
+      });
+
+      for (const theme of ["clasico", "pokedex"]) {
+        for (const mode of ["claro", "oscuro"]) {
+          await page.evaluate(({ theme, mode }) => {
+            document.documentElement.dataset.theme = theme;
+            document.documentElement.dataset.mode = mode;
+          }, { theme, mode });
+          // La corrección oscura debe conservarse al pasar el ratón; los modos claros no se modifican (#65).
+          if (mode === "oscuro") {
+            await page.getByRole("button", { name: "Listo" }).hover();
+            await page.waitForTimeout(150);
+            const hovered = await page.evaluate(() => (window as unknown as { __contrastAudit(): string[] }).__contrastAudit());
+            expect.soft(hovered, `${width} px, ${theme}/${mode}, sobre «Listo»`).toEqual([]);
+            await page.mouse.move(0, 0);
+          }
+          await page.screenshot({ path: testInfo.outputPath(`${width}-${theme}-${mode}.png`), fullPage: true });
+        }
+      }
+    }
+  } finally {
+    await ash.context.close();
+    await misty.context.close();
+  }
 });
