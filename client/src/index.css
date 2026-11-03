@@ -243,9 +243,6 @@ body::before {
 :root[data-mode="oscuro"] .auction-reveal {
   color: var(--fg);
 }
-:root[data-mode="oscuro"] .auction-reveal .auction-leave button:hover {
-  color: var(--fg);
-}
 :root[data-mode="oscuro"] .auction-reveal .auction-leave .auction-ready,
 :root[data-mode="oscuro"] .auction-reveal .auction-leave .auction-ready:hover {
   color: var(--accent-fg);
