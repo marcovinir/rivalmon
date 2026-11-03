@@ -58,14 +58,15 @@ export function createRecoveryRouter({ service, codeLimits, requireAccount }: Re
     const email = await service.emailOf(userId);
     const ip = clientIp(req);
     rejectWhenBlocked(res, codeLimits.reserveSend(ip, email), SEND_LIMIT_MESSAGE);
+    let result: { alreadyVerified: boolean };
     try {
-      await service.sendVerification(userId);
+      result = await service.sendVerification(userId);
     } catch (error) {
       // Si el proveedor falló, el envío no cuenta: se puede reintentar enseguida.
       if (isSendFailure(error)) codeLimits.releaseSend(ip, email);
       throw error;
     }
-    res.status(202).json({ ok: true });
+    res.status(202).json(result.alreadyVerified ? { ok: true, alreadyVerified: true } : { ok: true });
   });
 
   router.post("/verification/confirm", requireAccount, async (req, res) => {

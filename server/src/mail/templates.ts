@@ -36,7 +36,7 @@ function page(intro: string, code: string, outro: string): string {
 
 const EXPIRES = `Caduca en ${CODE_TTL_MINUTES} minutos. Si no lo pediste, ignora este mensaje.`;
 
-/** El código para verificar el correo de una cuenta nueva. No lleva el nombre de usuario ni ningún otro dato. */
+/** El código para verificar el correo de una cuenta. No lleva el nombre de usuario ni ningún otro dato. */
 export function verificationMail(to: string, code: string): Mail {
   assertCode(code);
   return {

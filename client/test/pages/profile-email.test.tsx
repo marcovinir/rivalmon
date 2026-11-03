@@ -39,6 +39,23 @@ describe("el correo en el perfil propio", () => {
     expect(screen.queryByRole("button", { name: "Verificar" })).toBeNull();
   });
 
+  it("al verificar lo anuncia y el foco va al título del recuadro", async () => {
+    const { user } = renderProfile();
+    await user.click(await screen.findByRole("button", { name: "Verificar" }));
+    await user.type(screen.getByLabelText("Código"), "123456");
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
+    expect(await screen.findByText("Correo verificado.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Correo" })).toHaveFocus();
+  });
+
+  it("si ya estaba verificado en otro sitio, se pone al día sin esperar un código", async () => {
+    const { services, user } = renderProfile();
+    vi.mocked(services.endpoints.auth.sendVerification).mockResolvedValueOnce({ alreadyVerified: true });
+    await user.click(await screen.findByRole("button", { name: "Verificar" }));
+    expect(await screen.findByText("Verificado")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Código")).toBeNull();
+  });
+
   it("un código equivocado se dice, y se puede volver a intentar", async () => {
     const { services, user } = renderProfile();
     vi.mocked(services.endpoints.auth.confirmVerification).mockRejectedValueOnce(new ApiError(400, "INVALID_CODE", "Código incorrecto o vencido. Revisa tu correo o pide uno nuevo."));

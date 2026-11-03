@@ -47,7 +47,7 @@ const envSchema = z
       .enum(["on", "off"], { error: "debe ser on u off" })
       .default("off")
       .transform((value) => value === "on"),
-    // Por defecto: consola en desarrollo y memoria en las pruebas; en producción hay que decirlo (con la verificación activa).
+    // Por defecto: consola en desarrollo y memoria en las pruebas; en producción hay que decirlo (con los códigos por correo activos).
     MAIL_PROVIDER: z.enum(["resend", "console", "memory"], { error: "debe ser resend, console o memory" }).optional(),
     RESEND_API_KEY: z.string().min(1, "no puede estar vacía").optional(),
     MAIL_FROM: z.string().regex(MAIL_FROM_PATTERN, "debe ser «Nombre <dirección>» o solo la dirección").optional(),

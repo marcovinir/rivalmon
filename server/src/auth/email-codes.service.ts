@@ -46,10 +46,15 @@ export class EmailCodesService {
     return user.email;
   }
 
-  /** Envía el código para verificar el correo. Ya verificado, no hace nada. Quien lo pide espera, así que un fallo se le dice. */
-  async sendVerification(userId: string): Promise<void> {
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, emailVerifiedAt: true } });
-    if (user.emailVerifiedAt !== null) return;
+  /**
+   * Envía el código para verificar el correo. Ya verificado, no envía y lo dice (la pantalla puede ir atrasada). Quien lo
+   * pide espera, así que un fallo se le dice.
+   */
+  async sendVerification(userId: string): Promise<{ alreadyVerified: boolean }> {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, username: true, emailVerifiedAt: true } });
+    // Pudo borrarse justo después de comprobarlo: su correo ya es `@invalid` y no se le envía nada.
+    if (isDeletedUsername(user.username)) throw new AppError(401, "UNAUTHORIZED", "El usuario ya no existe");
+    if (user.emailVerifiedAt !== null) return { alreadyVerified: true };
     const code = await this.codes.issue(this.prisma, userId, "verify_email");
     try {
       await this.mailer.send(verificationMail(user.email, code));
@@ -57,6 +62,7 @@ export class EmailCodesService {
       this.logMailFailure(error);
       throw sendFailed();
     }
+    return { alreadyVerified: false };
   }
 
   /** Comprueba el código de la propia cuenta y marca el correo como verificado. Cualquier fallo del código es INVALID_CODE. */

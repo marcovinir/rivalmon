@@ -40,6 +40,7 @@ export function createEmailCodesRouter({ env, prisma, tokens, mailer, limits }: 
           cooldown: createKeyedLimiter({ ...limits.codeCooldown, now: limits.now }),
           sendsByEmail: createKeyedLimiter({ ...limits.codeSendsByEmail, now: limits.now }),
           sendsByIp: createKeyedLimiter({ ...limits.codeSendsByIp, now: limits.now }),
+          sendsDaily: createKeyedLimiter({ ...limits.codeSendsDaily, now: limits.now }),
           failuresByEmail: createKeyedLimiter({ ...limits.codeFailuresByEmail, now: limits.now }),
           failuresByIp: createKeyedLimiter({ ...limits.codeFailuresByIp, now: limits.now }),
         }

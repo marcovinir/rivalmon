@@ -16,6 +16,7 @@ Con lo que viene de fábrica (`EMAIL_CODES` apagada) el juego funciona exactamen
 - **Los códigos** duran 10 minutos, valen una sola vez y se bloquean tras 5 intentos equivocados.
 - **Límites:** un código nuevo por correo cada 60 segundos, como máximo 5 por hora por correo y 10 por hora por IP. La capa gratuita de Resend tiene un tope diario y otro mensual; míralos en [resend.com/pricing](https://resend.com/pricing).
 - **Sin pistas:** nadie puede saber desde fuera si un correo tiene cuenta, porque la pantalla contesta lo mismo en los dos casos.
+- **El token de acceso ya emitido** sigue valiendo hasta que caduca, como mucho una hora, después de cambiar la contraseña: las sesiones se cierran del todo al no poder renovarse.
 - **Nada más cambia:** registrarse, iniciar sesión y jugar son iguales, y las cuentas que ya existen siguen funcionando sin verificar.
 
 ## Antes de empezar

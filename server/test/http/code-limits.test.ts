@@ -25,6 +25,7 @@ function setup() {
     cooldown: make(DEFAULT_RATE_LIMITS.codeCooldown),
     sendsByEmail: make(DEFAULT_RATE_LIMITS.codeSendsByEmail),
     sendsByIp: make(DEFAULT_RATE_LIMITS.codeSendsByIp),
+    sendsDaily: make(DEFAULT_RATE_LIMITS.codeSendsDaily),
     failuresByEmail: make(DEFAULT_RATE_LIMITS.codeFailuresByEmail),
     failuresByIp: make(DEFAULT_RATE_LIMITS.codeFailuresByIp),
   };

@@ -86,7 +86,7 @@ export function fakeServices(): FakeServices {
       saveAvatar: vi.fn(async (avatarId: number | null) => avatarId),
       deleteAccount: vi.fn(async () => {}),
       options: vi.fn(async () => ({ emailCodes: false })),
-      sendVerification: vi.fn(async () => {}),
+      sendVerification: vi.fn(async () => ({ alreadyVerified: false })),
       confirmVerification: vi.fn(async () => {}),
       forgotPassword: vi.fn(async () => {}),
       resetPassword: vi.fn(async () => {}),

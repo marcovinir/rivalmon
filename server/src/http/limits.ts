@@ -25,6 +25,11 @@ export interface RateLimitConfig {
   codeSendsByEmail: WindowLimit;
   /** Envíos de código por IP, a cualquier correo (contra usar el formulario para escribir a terceros y gastar la cuota del proveedor). */
   codeSendsByIp: WindowLimit;
+  /**
+   * Envíos de código de todo el sitio en un día, por debajo de la cuota gratuita del proveedor (100 al día en Resend): ni
+   * rotando correos e IP se agota la cuota de los demás.
+   */
+  codeSendsDaily: WindowLimit;
   /** Códigos equivocados por correo, exista o no la cuenta: el límite no puede delatarlo. */
   codeFailuresByEmail: WindowLimit;
   /** Códigos equivocados por IP sumando todos los correos. */
@@ -43,6 +48,7 @@ export const DEFAULT_RATE_LIMITS: RateLimitConfig = {
   codeCooldown: { limit: 1, windowMs: MINUTE },
   codeSendsByEmail: { limit: 5, windowMs: HOUR },
   codeSendsByIp: { limit: 10, windowMs: HOUR },
+  codeSendsDaily: { limit: 80, windowMs: 24 * HOUR },
   codeFailuresByEmail: { limit: 5, windowMs: 10 * MINUTE },
   codeFailuresByIp: { limit: 20, windowMs: HOUR },
 };

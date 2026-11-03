@@ -15,7 +15,7 @@ export interface MailerDeps {
   log?: (line: string) => void;
 }
 
-/** Sin proveedor (producción con la verificación apagada) nada debería enviar: si algo lo intenta, falla con un error claro. */
+/** Sin proveedor (producción con los códigos por correo apagados) nada debería enviar: si algo lo intenta, falla con un error claro. */
 class DisabledMailer implements Mailer {
   async send(_mail: Mail): Promise<void> {
     throw new MailerError(null, "El envío de correo no está configurado");

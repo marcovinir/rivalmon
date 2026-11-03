@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { ApiError } from "../../api/client";
 import { Badge } from "../../components/Badge";
 import { Button } from "../../components/Button";
@@ -24,13 +24,26 @@ export function EmailVerification({ email, verified }: { email: string; verified
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const cooldown = useCooldown();
+
+  /** El correo quedó verificado: se dice, y el foco (que estaba en un botón que desaparece) va al título. */
+  function verifiedNow(): void {
+    session.getState().markEmailVerified();
+    setOpen(false);
+    setNotice("Correo verificado.");
+    titleRef.current?.focus();
+  }
 
   async function send(): Promise<void> {
     setBusy(true);
     setError(null);
     try {
-      await endpoints.auth.sendVerification();
+      const { alreadyVerified } = await endpoints.auth.sendVerification();
+      // Se verificó en otra pestaña o dispositivo: no llegará ningún código, la pantalla se pone al día.
+      if (alreadyVerified) return verifiedNow();
+      setNotice(open ? "Te enviamos un código nuevo." : null);
       setOpen(true);
       cooldown.start(RESEND_WAIT_SECONDS);
     } catch (failure) {
@@ -51,8 +64,7 @@ export function EmailVerification({ email, verified }: { email: string; verified
     setError(null);
     try {
       await endpoints.auth.confirmVerification(code);
-      session.getState().markEmailVerified();
-      setOpen(false);
+      verifiedNow();
     } catch (failure) {
       setError(describe(failure));
     } finally {
@@ -62,13 +74,14 @@ export function EmailVerification({ email, verified }: { email: string; verified
 
   return (
     <Card as="section" aria-labelledby="email-title" className="flex flex-col gap-3 p-5">
-      <h2 id="email-title" className="font-display text-xl font-semibold">
+      <h2 id="email-title" ref={titleRef} tabIndex={-1} className="font-display text-xl font-semibold outline-none">
         Correo
       </h2>
       <div className="flex flex-wrap items-center gap-2">
         <span className="min-w-0 [overflow-wrap:anywhere]">{email}</span>
         <Badge tone={verified ? "success" : "neutral"}>{verified ? "Verificado" : "Sin verificar"}</Badge>
       </div>
+      {notice ? <Notice tone="success">{notice}</Notice> : null}
       {error ? <Notice tone="danger">{error}</Notice> : null}
       {verified ? null : open ? (
         <form onSubmit={confirm} noValidate className="flex flex-col gap-3">

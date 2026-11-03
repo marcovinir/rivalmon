@@ -6,8 +6,9 @@ import { useServices } from "../services";
 const asked = new WeakMap<Endpoints, Promise<boolean>>();
 
 /**
- * ¿Verifica el servidor el correo de las cuentas? Mientras no se sabe (o si la consulta falla) es `false`: la aplicación se
- * comporta como antes y no ofrece, por ejemplo, «¿Olvidaste tu contraseña?». Una consulta fallida no se recuerda.
+ * ¿Tiene el servidor encendidos los códigos por correo (`EMAIL_CODES`)? Mientras no se sabe (o si la consulta falla) es
+ * `false`: la aplicación se comporta como antes y no ofrece «¿Olvidaste tu contraseña?» ni la fila del correo del perfil.
+ * Una consulta fallida no se recuerda.
  */
 export function useEmailCodes(): boolean {
   const { endpoints } = useServices();

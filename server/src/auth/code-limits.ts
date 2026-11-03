@@ -5,6 +5,8 @@ export interface CodeLimiters {
   cooldown: KeyedLimiter;
   sendsByEmail: KeyedLimiter;
   sendsByIp: KeyedLimiter;
+  /** Uno solo para todo el sitio (clave fija). */
+  sendsDaily: KeyedLimiter;
   failuresByEmail: KeyedLimiter;
   failuresByIp: KeyedLimiter;
 }
@@ -15,7 +17,7 @@ export interface CodeLimiters {
  * Las claves son el correo y la IP, nunca si existe una cuenta: así el límite no delata qué correos están registrados.
  */
 export interface CodeLimits {
-  /** Un envío de código (registro, login sin verificar, reenviar, olvidé la contraseña). */
+  /** Un envío de código (verificar el correo u olvidé la contraseña). */
   reserveSend(ip: string, email: string): number | null;
   releaseSend(ip: string, email: string): void;
   /** Una comprobación de código (verificar o restablecer): se cuenta como fallo hasta que se demuestre lo contrario. */
@@ -25,6 +27,9 @@ export interface CodeLimits {
   /** La comprobación falló por algo nuestro y no cuenta como fallo de quien escribió el código. */
   releaseFailure(ip: string, email: string): void;
 }
+
+/** La clave única del tope diario de todo el sitio. */
+const SITE = "sitio";
 
 function longestWait(checks: LimitCheck[]): number | null {
   const waits = checks.flatMap((check) => (check.allowed ? [] : [check.retryAfterSeconds]));
@@ -36,20 +41,22 @@ export function createCodeLimits(limiters?: CodeLimiters): CodeLimits {
   if (!limiters) {
     return { reserveSend: () => null, releaseSend() {}, reserveFailure: () => null, forgiveFailure() {}, releaseFailure() {} };
   }
-  const { cooldown, sendsByEmail, sendsByIp, failuresByEmail, failuresByIp } = limiters;
+  const { cooldown, sendsByEmail, sendsByIp, sendsDaily, failuresByEmail, failuresByIp } = limiters;
   return {
     reserveSend(ip, email) {
-      const wait = longestWait([cooldown.check(email), sendsByEmail.check(email), sendsByIp.check(ip)]);
+      const wait = longestWait([cooldown.check(email), sendsByEmail.check(email), sendsByIp.check(ip), sendsDaily.check(SITE)]);
       if (wait !== null) return wait;
       cooldown.record(email);
       sendsByEmail.record(email);
       sendsByIp.record(ip);
+      sendsDaily.record(SITE);
       return null;
     },
     releaseSend(ip, email) {
       cooldown.release(email);
       sendsByEmail.release(email);
       sendsByIp.release(ip);
+      sendsDaily.release(SITE);
     },
     reserveFailure(ip, email) {
       const wait = longestWait([failuresByEmail.check(email), failuresByIp.check(ip)]);
