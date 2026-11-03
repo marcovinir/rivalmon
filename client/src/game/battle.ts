@@ -61,7 +61,7 @@ export interface TurnExtras {
   abilityNames?: Record<string, string>;
 }
 
-function noteLine(note: BattleNote, names: Names, abilityNames: Record<string, string>): string {
+export function noteLine(note: BattleNote, names: Names, abilityNames: Record<string, string>): string {
   if (note.kind === "failed") return "Pero no tuvo efecto.";
   const name = names[note.seat];
   switch (note.kind) {
@@ -86,7 +86,7 @@ function noteLine(note: BattleNote, names: Names, abilityNames: Record<string, s
   }
 }
 
-function actionLine(action: BattleAction, names: Names): string {
+export function actionLine(action: BattleAction, names: Names): string {
   const name = names[action.actor];
   if (action.blocked) return `${name} está ${action.blocked === "sleep" ? "dormido" : "paralizado"} y no puede moverse.`;
   const start = `${name} usó ${action.moveName}`;

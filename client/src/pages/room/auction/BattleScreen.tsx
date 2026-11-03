@@ -13,29 +13,7 @@ import { useRoom } from "../use-room";
 import { BattleSprite } from "./BattleSprite";
 import { HpBar } from "./HpBar";
 import { InactivityWarning } from "./InactivityWarning";
-
-/** Cada ataque de un turno se anima 1,2 s: en los 3 s que espera el servidor caben los dos. */
-const STRIKE_MS = 1200;
-
-/** Qué le toca animar ahora a cada lado. */
-function useStrike(actions: { actor: Seat; damage: number }[] | null, key: string | null): { attacker: Seat; target: Seat } | null {
-  const [strike, setStrike] = useState<{ attacker: Seat; target: Seat } | null>(null);
-  const latest = useRef(actions);
-  latest.current = actions;
-  useEffect(() => {
-    const hits = (latest.current ?? []).filter((action) => action.damage > 0);
-    if (key === null || hits.length === 0) {
-      setStrike(null);
-      return;
-    }
-    // Un turno nuevo cancela lo que quedara del anterior: nadie se queda teñido.
-    const show = (index: number) => setStrike(index < hits.length ? { attacker: hits[index]!.actor, target: rivalSeat(hits[index]!.actor) } : null);
-    show(0);
-    const timers = hits.map((_, index) => setTimeout(() => show(index + 1), STRIKE_MS * (index + 1)));
-    return () => timers.forEach(clearTimeout);
-  }, [key]);
-  return strike;
-}
+import { useBattlePlayback } from "./use-battle-playback";
 
 const standing = (team: BattleFighterView[]): number => team.filter((one) => one.hp > 0).length;
 
@@ -51,11 +29,12 @@ function moveFacts(one: BattleMoveView): string {
 export function BattleScreen() {
   const { view, client } = useRoom();
   const reduced = useReducedMotion();
-  const battle = view.auction?.battle;
+  const authoritative = view.auction?.battle;
   const last = view.battleLog[view.battleLog.length - 1] ?? null;
   // Solo el turno en curso: al volver de la pausa la pantalla se monta de nuevo con el último golpe en el registro.
-  const current = last && battle && last.round === battle.round && last.turn === battle.turn ? last : null;
-  const strike = useStrike(current?.actions ?? null, current ? `${current.round}-${current.turn}` : null);
+  const current = last && authoritative && last.round === authoritative.round && last.turn === authoritative.turn ? last : null;
+  const playback = useBattlePlayback(current, authoritative, view.mySeat ?? 1);
+  const battle = playback.battle;
   const movesRef = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<"mine" | "theirs" | null>(null);
   const titulars = `${battle?.myTitular}-${battle?.rivalTitular}`;
@@ -92,13 +71,13 @@ export function BattleScreen() {
   const mine = battle.myTeam.find((one) => one.pokemon.id === battle.myTitular);
   const theirs = battle.rivalTeam.find((one) => one.pokemon.id === battle.rivalTitular);
   const effectOf = (seat: Seat): string => {
-    if (!strike) return "";
-    if (seat === strike.target) return reduced ? "battle-flash" : "battle-hit";
-    if (seat === strike.attacker && !reduced) return seat === mySeat ? "battle-lunge" : "battle-lunge battle-lunge-left";
-    return "";
+    const effect = playback.frame?.effects[seat] ?? "";
+    if (effect === "battle-hit") return reduced ? "battle-flash" : effect;
+    if (effect === "battle-lunge") return reduced ? "" : seat === mySeat ? effect : `${effect} battle-lunge-left`;
+    return effect;
   };
   // El K.O. sale cuando acaba el golpe que lo causó.
-  const knockedOut = view.lastRoundEnd?.round === battle.round && strike === null;
+  const knockedOut = view.lastRoundEnd?.round === battle.round && !playback.busy;
   const lines = [...view.battleLog].reverse().flatMap((entry) => turnLines(entry.actions, entry.names, entry).map((line, index) => ({ key: `${entry.round}-${entry.turn}-${index}`, line })));
   const tipAbility = (tip === "mine" ? mine : tip === "theirs" ? theirs : undefined)?.ability ?? null;
   const prompt = !choosing ? BATTLE_TEXT.resolving : battle.rivalIdle ? BATTLE_TEXT.rivalSlow(rivalName) : battle.confirmed ? BATTLE_TEXT.waitingFor(rivalName) : mine ? BATTLE_TEXT.whatDoes(mine.pokemon.names.es) : "";
@@ -108,8 +87,9 @@ export function BattleScreen() {
       <div className="flex min-w-0 flex-col gap-2 lg:gap-3">
         <div data-arena className="battle-arena relative h-64 overflow-hidden rounded-xl bg-[#1b1147] sm:aspect-video sm:h-auto lg:aspect-auto lg:h-[30rem]">
           <img src={`/auction/combate-${battle.scene}.png`} alt="" className="absolute inset-0 size-full object-cover [image-rendering:pixelated]" />
-          {theirs ? <BattleSprite key={theirs.pokemon.id} id={theirs.pokemon.id} name={theirs.pokemon.names.es} side="front" effect={effectOf(rival)} showsAbility={theirs.ability !== null} describedBy={tip === "theirs" ? "battle-tip" : undefined} onAbility={(open) => setTip(open ? "theirs" : null)} /> : null}
-          {mine ? <BattleSprite key={mine.pokemon.id} id={mine.pokemon.id} name={mine.pokemon.names.es} side="back" effect={effectOf(mySeat)} showsAbility={mine.ability !== null} describedBy={tip === "mine" ? "battle-tip" : undefined} onAbility={(open) => setTip(open ? "mine" : null)} /> : null}
+          {theirs ? <BattleSprite key={theirs.pokemon.id} id={theirs.pokemon.id} name={theirs.pokemon.names.es} side="front" status={theirs.status} effect={effectOf(rival)} showsAbility={theirs.ability !== null} describedBy={tip === "theirs" ? "battle-tip" : undefined} onAbility={(open) => setTip(open ? "theirs" : null)} /> : null}
+          {mine ? <BattleSprite key={mine.pokemon.id} id={mine.pokemon.id} name={mine.pokemon.names.es} side="back" status={mine.status} effect={effectOf(mySeat)} showsAbility={mine.ability !== null} describedBy={tip === "mine" ? "battle-tip" : undefined} onAbility={(open) => setTip(open ? "mine" : null)} /> : null}
+          {playback.frame ? <p aria-hidden="true" data-battle-step={playback.frame.step.kind} data-battle-step-index={playback.index} className="battle-step">{playback.frame.text}</p> : null}
           {theirs ? (
             <div className="absolute top-1.5 left-1.5 w-44 lg:top-4 lg:left-4 lg:w-72">
               <HpBar fighter={theirs} standing={standing(battle.rivalTeam)} percentOnly />

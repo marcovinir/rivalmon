@@ -519,11 +519,57 @@ body::before {
   --lunge-y: 20px;
 }
 .battle-hit {
-  animation: battle-shake 200ms ease-in-out 200ms, battle-tint 400ms ease-in-out 200ms;
+  animation: battle-shake 200ms ease-in-out, battle-tint 400ms ease-in-out;
 }
 .battle-flash {
   animation: battle-blink 300ms linear;
 }
+.battle-step {
+  position: absolute;
+  z-index: 10;
+  top: 4.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  background: #1b1147;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+@media (min-width: 64rem) {
+  .battle-step {
+    top: 5.5rem;
+    font-size: 1rem;
+  }
+}
+/* El aura conserva el estado sin movimiento; el pulso señala el instante en que ocurre el efecto. */
+.battle-aura { filter: drop-shadow(0 0 6px var(--battle-aura)); }
+.battle-aura-burn { --battle-aura: #ff975f; }
+.battle-aura-poison { --battle-aura: #d699ff; }
+.battle-aura-paralysis { --battle-aura: #ffe17a; }
+.battle-aura-sleep { --battle-aura: #b6c8ee; }
+@keyframes battle-mark {
+  40% { filter: drop-shadow(0 0 10px var(--battle-mark)) brightness(1.7); }
+}
+.battle-afflicted-burn,
+.battle-afflicted-poison,
+.battle-afflicted-paralysis,
+.battle-afflicted-sleep,
+.battle-boost-up,
+.battle-boost-down,
+.battle-heal { animation: battle-mark 900ms ease-out; }
+.battle-afflicted-burn { --battle-mark: #ff975f; }
+.battle-afflicted-poison { --battle-mark: #d699ff; }
+.battle-afflicted-paralysis { --battle-mark: #ffe17a; }
+.battle-afflicted-sleep { --battle-mark: #b6c8ee; }
+.battle-boost-up, .battle-heal { --battle-mark: #85efa5; }
+.battle-boost-down { --battle-mark: #c99aff; }
 
 /*
  * Los efectos de ataque (AttackEffect.tsx). Cada pieza es una caja del tamaño de la arena que se traslada: así un porcentaje
@@ -996,6 +1042,15 @@ body::before {
     animation-duration: 300ms !important;
   }
   .attack-flash {
+    animation-duration: 300ms !important;
+  }
+  .battle-afflicted-burn,
+  .battle-afflicted-poison,
+  .battle-afflicted-paralysis,
+  .battle-afflicted-sleep,
+  .battle-boost-up,
+  .battle-boost-down,
+  .battle-heal {
     animation-duration: 300ms !important;
   }
 }

@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fighter, battleState, moveView, MY_TEAM, RIVAL_TEAM } from "../helpers/battle";
 import { SERVER_NOW } from "../helpers/events";
@@ -7,7 +7,86 @@ import { fakeServices } from "../helpers/services";
 
 const hit = { actor: 1 as const, move: "flamethrower", moveName: "Lanzallamas", damage: 42, critical: false, effectiveness: 2, healed: 0, actorHp: 100, targetHp: 58, missed: false, blocked: null, notes: [] };
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+describe("la secuencia del turno", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("remontar la pantalla con el registro conservado no repite el golpe", () => {
+    const services = fakeServices();
+    const { unmount } = renderRoom([battleState("battle")], services);
+    serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 1, actions: [hit] } });
+    serverSends(services, battleState("battle", { choosing: false, moves: [] }));
+    unmount();
+    renderRoom([], services);
+    expect(screen.getByRole("img", { name: "Uno" }).parentElement).not.toHaveClass("battle-lunge");
+    expect(screen.getByRole("img", { name: "Cuatro" }).parentElement).not.toHaveClass("battle-hit");
+  });
+
+  it("el room-state final no baja los PS antes del impacto", () => {
+    vi.useFakeTimers();
+    const services = fakeServices();
+    renderRoom([battleState("battle")], services);
+    serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 1, actions: [hit] } });
+    serverSends(services, battleState("battle", { choosing: false, moves: [], rivalTeam: [fighter(4, "Cuatro", 58), ...RIVAL_TEAM.slice(1)] }));
+    expect(screen.getByRole("meter", { name: "PS de Cuatro" })).toHaveAttribute("aria-valuenow", "100");
+    act(() => vi.advanceTimersByTime(249));
+    expect(screen.getByRole("meter", { name: "PS de Cuatro" })).toHaveAttribute("aria-valuenow", "100");
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByRole("meter", { name: "PS de Cuatro" })).toHaveAttribute("aria-valuenow", "58");
+  });
+
+  it.each([{ missed: true }, { blocked: "sleep" as const }, { blocked: "paralysis" as const }, { effectiveness: 0 }, { damage: 0 }])("sin ataque no hay embestida ni golpe: %j", (over) => {
+    const services = fakeServices();
+    const { container } = renderRoom([battleState("battle")], services);
+    serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 1, actions: [{ ...hit, ...over }] } });
+    expect(container.querySelector(".battle-lunge, .battle-hit, .battle-flash")).toBeNull();
+    expect(container.querySelector("[data-battle-step]")).not.toBeNull();
+  });
+
+  it("cada golpe baja la barra de quien lo recibe en su momento", () => {
+    vi.useFakeTimers();
+    const services = fakeServices();
+    const { container } = renderRoom([battleState("battle")], services);
+    serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 1, actions: [hit, { ...hit, actor: 2, damage: 20, actorHp: 58, targetHp: 80 }] } });
+    serverSends(services, battleState("battle", { choosing: false, moves: [], myTeam: [fighter(1, "Uno", 80)], rivalTeam: [fighter(4, "Cuatro", 58)] }));
+    act(() => vi.advanceTimersByTime(250));
+    expect(screen.getByRole("meter", { name: "PS de Uno" })).toHaveAttribute("aria-valuenow", "100");
+    expect(screen.getByRole("meter", { name: "PS de Cuatro" })).toHaveAttribute("aria-valuenow", "58");
+    act(() => vi.advanceTimersByTime(950));
+    expect(container.querySelector("[data-battle-step]")).toHaveTextContent("Cuatro usó Lanzallamas");
+    expect(screen.getByRole("meter", { name: "PS de Uno" })).toHaveAttribute("aria-valuenow", "100");
+    act(() => vi.advanceTimersByTime(250));
+    expect(screen.getByRole("meter", { name: "PS de Uno" })).toHaveAttribute("aria-valuenow", "80");
+  });
+
+  it("la señal de estado y de stat aparece sobre el afectado, sin repetir el anuncio del lector", () => {
+    vi.useFakeTimers();
+    const services = fakeServices();
+    const { container } = renderRoom([battleState("battle")], services);
+    serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 1, actions: [{ ...hit, damage: 0, targetHp: 100, notes: [{ kind: "status", seat: 2, status: "poison" }, { kind: "stat", seat: 1, stat: "attack", change: 1 }] }] } });
+    const announcement = screen.getByRole("log", { name: "Anuncios de la partida" }).textContent;
+    act(() => vi.advanceTimersByTime(1200));
+    expect(screen.getByRole("img", { name: "Cuatro" }).parentElement).toHaveClass("battle-afflicted-poison");
+    expect(container.querySelector("[data-battle-step]")).toHaveTextContent("Cuatro fue envenenado.");
+    act(() => vi.advanceTimersByTime(900));
+    expect(screen.getByRole("img", { name: "Uno" }).parentElement).toHaveClass("battle-boost-up");
+    expect(screen.getByRole("log", { name: "Anuncios de la partida" })).toHaveTextContent(announcement!);
+    expect(container.querySelector("[data-battle-step]")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("un duplicado del evento no vuelve a empezar la secuencia", () => {
+    vi.useFakeTimers();
+    const services = fakeServices();
+    const { container } = renderRoom([battleState("battle")], services);
+    const turn = { name: "battle-turn" as const, payload: { round: 1, turn: 1, actions: [hit] } };
+    serverSends(services, turn);
+    act(() => vi.advanceTimersByTime(250));
+    serverSends(services, turn);
+    expect(container.querySelector("[data-battle-step]")).toHaveAttribute("data-battle-step", "action");
+    expect(services.game.store.getState().view.battleLog).toHaveLength(1);
+  });
+});
 
 describe("el combate", () => {
   it("muestra las barras con su valor y su tono", () => {
@@ -53,9 +132,11 @@ describe("el combate", () => {
   });
 
   it("la entrada no comparte nodo con los golpes: al acabar uno no se repetiría", () => {
+    vi.useFakeTimers();
     const services = fakeServices();
     renderRoom([battleState("battle")], services);
     serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 1, actions: [hit] } });
+    act(() => vi.advanceTimersByTime(250));
     const hitNode = screen.getByRole("img", { name: "Cuatro" }).parentElement!;
     expect(hitNode).toHaveClass("battle-hit");
     expect(hitNode).not.toHaveClass("battle-enter");
@@ -265,13 +346,17 @@ describe("el combate", () => {
   });
 
   it("al golpear, embiste el atacante y se tiñe el defensor; con otro turno no quedan teñidos", () => {
+    vi.useFakeTimers();
     const services = fakeServices();
     renderRoom([battleState("battle")], services);
     serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 1, actions: [hit] } });
     expect(screen.getByRole("img", { name: "Uno" }).parentElement).toHaveClass("battle-lunge");
+    expect(screen.getByRole("img", { name: "Cuatro" }).parentElement).not.toHaveClass("battle-hit");
+    act(() => vi.advanceTimersByTime(250));
     expect(screen.getByRole("img", { name: "Cuatro" }).parentElement).toHaveClass("battle-hit");
     serverSends(services, battleState("battle", { turn: 2 }));
     serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 2, actions: [{ ...hit, actor: 2 }] } });
+    act(() => vi.advanceTimersByTime(250));
     expect(screen.getByRole("img", { name: "Uno" }).parentElement).toHaveClass("battle-hit");
     expect(screen.getByRole("img", { name: "Cuatro" }).parentElement).not.toHaveClass("battle-hit");
   });
@@ -321,10 +406,12 @@ describe("el combate", () => {
   });
 
   it("con «reducir movimiento», solo un destello", () => {
+    vi.useFakeTimers();
     vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("reduce"), media: query, addEventListener() {}, removeEventListener() {} }));
     const services = fakeServices();
     renderRoom([battleState("battle")], services);
     serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 1, actions: [hit] } });
+    act(() => vi.advanceTimersByTime(250));
     expect(screen.getByRole("img", { name: "Uno" }).parentElement).not.toHaveClass("battle-lunge");
     expect(screen.getByRole("img", { name: "Cuatro" }).parentElement).not.toHaveClass("battle-hit");
     expect(screen.getByRole("img", { name: "Cuatro" }).parentElement).toHaveClass("battle-flash");
