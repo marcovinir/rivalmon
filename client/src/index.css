@@ -238,6 +238,15 @@ body::before {
 .auction-leave span {
   color: #ffffff;
 }
+/* En la revelación las tarjetas y «Listo» usan fondos del tema: el texto fijo de la escena
+   pierde contraste en oscuro. Se corrige solo esta pantalla y modo para conservar los claros. */
+:root[data-mode="oscuro"] .auction-reveal {
+  color: var(--fg);
+}
+:root[data-mode="oscuro"] .auction-reveal .auction-leave .auction-ready,
+:root[data-mode="oscuro"] .auction-reveal .auction-leave .auction-ready:hover {
+  color: var(--accent-fg);
+}
 .auction-bid:disabled {
   opacity: 0.45;
   cursor: not-allowed;

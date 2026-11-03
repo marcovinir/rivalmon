@@ -61,7 +61,7 @@ export function RevealView() {
   );
 
   return (
-    <section className="auction-screen relative mx-auto flex w-full max-w-5xl flex-col gap-4 overflow-hidden p-3">
+    <section className="auction-screen auction-reveal relative mx-auto flex w-full max-w-5xl flex-col gap-4 overflow-hidden p-3">
       <img src="/auction/lote-noche.png" alt="" className="auction-pixel absolute inset-0 size-full object-cover" />
       <p role="log" aria-label={AUCTION_TEXT.revealLog} className="sr-only">
         {last ? `${last.pokemon.names.es}${last.wasTrap ? `. ${AUCTION_TEXT.wasTrap}` : ""}` : ""}
@@ -74,7 +74,7 @@ export function RevealView() {
         {column(opponent?.username ?? "Tu rival", view.mySeat === 1 ? 2 : 1)}
       </div>
       <div className="auction-leave relative flex flex-col items-center gap-3">
-        <Button variant="primary" size="lg" disabled={confirmed} onClick={() => client.ready()}>
+        <Button variant="primary" size="lg" className="auction-ready" disabled={confirmed} onClick={() => client.ready()}>
           {confirmed ? AUCTION_TEXT.waitingRival : AUCTION_TEXT.ready}
         </Button>
         <LeaveButton onLeave={() => client.leave()} />
