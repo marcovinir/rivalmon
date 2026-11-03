@@ -14,6 +14,9 @@ describe("límites y duraciones del cliente", () => {
     expect(durations.ROUND_MS).toBe(serverConstants.ROUND_SECONDS * 1000);
     expect(durations.AUCTION_WARNING_MS).toBe(auctionRules.INACTIVITY_WARNING_MS);
     expect(durations.AUCTION_REVEAL_MS).toBe(auctionRules.REVEAL_MS);
+    expect(durations.AUCTION_REVEAL_MS).toBe(18_000);
+    expect(durations.AUCTION_REVEAL_STEP_MS).toBe(1500);
+    expect(durations.AUCTION_REVEAL_STEP_MS * 12).toBe(durations.AUCTION_REVEAL_MS);
     expect(durations.BATTLE_LINEUP_MS).toBe(auctionRules.LINEUP_MS);
     expect(durations.BATTLE_PAUSE_MS).toBe(auctionRules.PAUSE_MS);
     expect(durations.BATTLE_MAX_TURNS).toBe(auctionRules.MAX_TURNS_PER_ROUND);

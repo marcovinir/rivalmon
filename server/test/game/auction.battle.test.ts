@@ -54,11 +54,11 @@ function toPause(seed = 1): AuctionHarness {
 const loserOf = (h: AuctionHarness): Seat => (h.state.battle!.titular[1] === null ? 1 : 2);
 
 describe("revelación y alineación", () => {
-  it("tras la subasta se ve la revelación, ya observable, y dura 36 s", () => {
+  it("tras la subasta se ve la revelación, ya observable, y dura 18 s", () => {
     const h = toReveal();
     expect(h.state.phase).toBe("reveal");
     expect(h.view(1).auction!.reveal).toHaveLength(12);
-    h.advance(35_999);
+    h.advance(17_999);
     expect(h.state.phase).toBe("reveal");
     h.advance(1);
     expect(h.state.phase).toBe("lineup");
