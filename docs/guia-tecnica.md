@@ -121,6 +121,10 @@ Al final de **Mi perfil**, «Borrar mi cuenta» pide la contraseña y **anonimiz
 
 Al entrar se llega al **menú principal** («¿A qué jugamos?»), con una tarjeta por juego. «Jugar» lleva a su lobby: `/jugar/doble-tipo` o `/jugar/silueta` (crear sala con las opciones de ese juego, unirse con código y la sala activa). Un código de sala lleva a la sala de su juego desde cualquier lobby, y «Volver al lobby» del resumen vuelve al lobby del juego de esa sala.
 
+## Subasta Pokémon: revelación
+
+Al terminar la puja, los 12 Pokémon aparecen en orden de compra: el primero al empezar y otro cada **1,5 s**, durante **18 s** en total. El sonido de cada silueta trampa coincide con su aparición. Si los dos pulsan **«Listo»**, se pasa a la alineación antes de que venza el plazo. Al recargar se conserva la revelación, su plazo y la confirmación de cada jugador; el cliente calcula cuántos Pokémon mostrar a partir del plazo del servidor.
+
 ## «¿Quién es ese Pokémon?»
 
 - **Opciones:** 5, **10** o 15 rondas, y las generaciones de las que salen los Pokémon (de la 1.ª, Kanto, a la 9.ª, Paldea; por defecto solo Kanto; al menos una).

@@ -16,8 +16,8 @@ export interface EffectCue {
 
 /** El efecto de acierto o fallo de la silueta suena después de la revelación. */
 const AFTER_REVEAL_MS = 600;
-/** Cada Pokémon de la revelación aparece 3 s después del anterior: su trampa suena entonces. */
-const REVEAL_STEP_MS = 3000;
+/** Cada Pokémon de la revelación aparece 1,5 s después del anterior: su trampa suena entonces. */
+const REVEAL_STEP_MS = 1500;
 /** El efecto de ganar o perder, tras el acierto o el fallo de la última ronda. */
 const AFTER_LAST_ROUND_MS = 500;
 

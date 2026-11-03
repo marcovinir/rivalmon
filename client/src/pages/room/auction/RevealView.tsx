@@ -9,7 +9,7 @@ import { AUCTION_TEXT } from "../../../i18n/es";
 import { LeaveButton } from "../LeaveButton";
 import { useRoom } from "../use-room";
 
-/** Cuántos Pokémon se han revelado ya: el primero al empezar y otro cada 3 s. Se calcula del plazo: al recargar sale igual. */
+/** Cuántos Pokémon se han revelado ya: el primero al empezar y otro cada 1,5 s. Se calcula del plazo: al recargar sale igual. */
 export function revealedCount(deadline: number, now: number, total: number): number {
   const elapsed = now - (deadline - AUCTION_REVEAL_MS);
   return Math.min(total, Math.max(1, 1 + Math.floor(elapsed / AUCTION_REVEAL_STEP_MS)));

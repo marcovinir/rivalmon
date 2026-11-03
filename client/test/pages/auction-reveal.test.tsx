@@ -22,7 +22,7 @@ const battleView = (over: Partial<BattleView> = {}): BattleView => ({
   mySwitch: null,
   round: 0,
   turn: 0,
-  deadline: SERVER_NOW + 36_000,
+  deadline: SERVER_NOW + 18_000,
   confirmed: false,
   myLineup: null,
   myMove: null,
@@ -52,12 +52,13 @@ afterEach(() => {
 });
 
 describe("revealedCount", () => {
-  const deadline = 36_000;
-  it("uno cada 3 s", () => {
-    expect(revealedCount(deadline, 0, 6)).toBe(1);
-    expect(revealedCount(deadline, 2999, 6)).toBe(1);
-    expect(revealedCount(deadline, 3000, 6)).toBe(2);
-    expect(revealedCount(deadline, 15_000, 6)).toBe(6);
+  const deadline = 18_000;
+  it("uno cada 1,5 s, con los 12 visibles antes de terminar los 18 s", () => {
+    for (let index = 0; index < 12; index++) {
+      expect(revealedCount(deadline, index * 1500, 12)).toBe(index + 1);
+      expect(revealedCount(deadline, (index + 1) * 1500 - 1, 12)).toBe(index + 1);
+    }
+    expect(revealedCount(deadline, 18_000, 12)).toBe(12);
   });
   it("no se sale de los límites", () => {
     expect(revealedCount(deadline, -5000, 6)).toBe(1);
@@ -75,7 +76,7 @@ describe("la revelación", () => {
   });
 
   it("al recargar a mitad se ven de golpe los que ya tocaban, y la trampa", () => {
-    renderRoom([state("reveal", { deadline: SERVER_NOW + 24_000 })]);
+    renderRoom([state("reveal", { deadline: SERVER_NOW + 12_000 })]);
     for (const name of ["Uno", "Dos", "Tres", "Cuatro", "Cinco"]) expect(screen.getByText(name, { ignore: "[role=log]" })).toBeInTheDocument();
     expect(screen.queryByText("Seis")).toBeNull();
     expect(screen.getAllByText("¡Era una trampa!")).toHaveLength(1);

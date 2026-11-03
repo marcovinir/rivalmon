@@ -11,8 +11,8 @@ export const INACTIVITY_WARNING_MS = 15_000;
 export const MAX_STILL_HERE = 2;
 /** Lo que se muestra un lote que se reparte solo porque alguien ya completó su equipo. */
 export const AUTO_LOT_MS = 2_000;
-/** La revelación: 3 s por Pokémon, y se salta si los dos confirman. */
-export const REVEAL_MS = 36_000;
+/** La revelación: 1,5 s por Pokémon, y se salta si los dos confirman. */
+export const REVEAL_MS = 18_000;
 export const LINEUP_MS = 30_000;
 /** Lo que espera el servidor tras resolver un turno, para que la pantalla lo anime. */
 export const TURN_ANIMATION_MS = 3_000;

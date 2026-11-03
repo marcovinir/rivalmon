@@ -159,10 +159,12 @@ describe("la subasta suena", () => {
 
   it("la revelación, y cada trampa cuando le toca aparecer", () => {
     const entry = (wasTrap: boolean) => ({ owner: 1 as const, pokemon, wasTrap });
-    const event: ServerEvent = { name: "auction-reveal", payload: { reveal: [entry(false), entry(true), entry(false)] } };
+    const event: ServerEvent = { name: "auction-reveal", payload: { reveal: Array.from({ length: 12 }, (_, index) => entry([0, 1, 11].includes(index))) } };
     expect(effectsForEvent(view, event, view)).toEqual([
       { effect: "reveal", delayMs: 0 },
-      { effect: "wrong", delayMs: 3000 },
+      { effect: "wrong", delayMs: 0 },
+      { effect: "wrong", delayMs: 1500 },
+      { effect: "wrong", delayMs: 16_500 },
     ]);
   });
 });
