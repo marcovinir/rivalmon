@@ -27,10 +27,13 @@ export function battleTurnSteps(turn: BattleTurnPresentation): BattleStep[] {
   for (const change of turn.switches ?? []) steps.push({ kind: "switch", change, durationMs: 700 });
   notes(turn.entryNotes ?? [], "entry");
   for (const action of turn.actions) {
+    // Despertar permite esta acción: se muestra antes de que el Pokémon empiece a moverse.
+    for (const note of action.notes.filter((note) => note.kind === "woke")) steps.push({ kind: "note", note, scope: "action", durationMs: 900 });
     const attack = action.damage > 0 && !action.missed && action.blocked === null && action.effectiveness !== 0;
     if (attack) steps.push({ kind: "windup", action, durationMs: 250 });
     steps.push({ kind: "action", action, attack, durationMs: attack ? 950 : 1200 });
-    action.notes.forEach((note, index) => steps.push({ kind: "note", note, scope: "action", action, lastInAction: index === action.notes.length - 1, durationMs: 900 }));
+    const after = action.notes.filter((note) => note.kind !== "woke");
+    after.forEach((note, index) => steps.push({ kind: "note", note, scope: "action", action, lastInAction: index === after.length - 1, durationMs: 900 }));
   }
   notes(turn.endNotes ?? [], "end");
   // El resultado final (y el K.O., si corresponde) queda visible antes de que avance el servidor.

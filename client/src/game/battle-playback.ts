@@ -52,11 +52,12 @@ export function buildBattleFrames(before: BattleView, entry: BattleLogEntry, myS
         break;
       case "action": {
         const { action } = step;
-        text = actionLine(action, entry.names);
+        // El detalle numérico queda en el registro; la franja debe dejar ver el combate.
+        text = step.attack ? `${entry.names[action.actor]} usó ${action.moveName}.` : actionLine(action, entry.names);
         if (!action.missed && !action.blocked) {
           if (step.attack) hp(rivalSeat(action.actor), (current) => current - action.damage);
           if (action.effectiveness !== 0) hp(action.actor, (current) => current + action.healed);
-          if (action.notes.length === 0) checkpoint(action);
+          if (action.notes.every((note) => note.kind === "woke")) checkpoint(action);
         }
         if (step.attack) effects[rivalSeat(action.actor)] = "battle-hit";
         else if (action.blocked) effects[action.actor] = `battle-afflicted-${action.blocked}`;

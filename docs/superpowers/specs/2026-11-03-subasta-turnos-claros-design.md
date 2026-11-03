@@ -45,6 +45,8 @@ Orden propuesto:
 5. Notas de cierre, como quemadura, veneno o Impulso.
 6. Un cierre breve que deja visibles los resultados y, cuando corresponde, el K.O. actual.
 
+El despertar se presenta antes de la acción que permite ejecutar; las demás notas de la acción aparecen después de su resultado.
+
 Propuesta inicial de ritmo: 250 ms de preparación y 950 ms de impacto para un ataque con daño; 1200 ms para explicar una acción sin ataque; 700 ms por cambio, 900 ms por nota y 500 ms de cierre. Son tiempos de presentación, sin cambios de reglas. Se ajustarán únicamente si la comprobación visual encuentra que un texto no se alcanza a leer; el cliente y el servidor seguirán compartiendo la misma definición.
 
 No se anima un ataque por el mero hecho de que exista una acción. Una embestida requiere daño y una acción que no esté bloqueada, no haya fallado y sí afecte al rival. El apoyo, la curación y los efectos sin daño tienen su texto y su señal correspondiente, sin una embestida ficticia.

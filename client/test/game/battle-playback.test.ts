@@ -1,6 +1,7 @@
 import { battleTurnDurationMs, battleTurnSteps, type BattleAction } from "@pokemon-minigames/shared";
 import { describe, expect, it } from "vitest";
 import { buildBattleFrames } from "../../src/game/battle-playback";
+import { turnLines, turnSummary } from "../../src/game/battle";
 import type { BattleLogEntry } from "../../src/game/apply-event";
 import { battleView } from "../helpers/battle";
 
@@ -31,6 +32,20 @@ describe("los pasos compartidos del turno", () => {
 });
 
 describe("los cuadros presentados", () => {
+  it("el registro y el resumen sitúan el despertar antes de la acción", () => {
+    const turn = entry({ actions: [{ ...hit, notes: [{ kind: "woke", seat: 1 }] }] });
+    expect(turnLines(turn.actions, turn.names)).toEqual(["Uno se despertó.", "Uno usó Placaje: 30 de daño."]);
+    expect(turnSummary(turn.actions, turn.names)).toBe("Uno se despertó. Uno, 30 de daño.");
+  });
+  it("despertarse se presenta antes de atacar, sin embestir con la etiqueta de dormido", () => {
+    const before = battleView({ myTeam: [{ ...battleView().myTeam[0]!, status: "sleep" }] });
+    const turn = entry({ before, actions: [{ ...hit, notes: [{ kind: "woke", seat: 1 }] }] });
+    const frames = buildBattleFrames(before, turn, 1);
+    expect(frames[0]!.step.kind).toBe("note");
+    expect(frames[0]!.battle.myTeam[0]!.status).toBeNull();
+    expect(frames[1]!.step.kind).toBe("windup");
+  });
+
   it("las notas de entrada del asalto ya estaban aplicadas en la vista inicial y no duplican sus stats", () => {
     const before = battleView({ myTeam: [{ ...battleView().myTeam[0]!, stages: { attack: -1 } }] });
     const turn = entry({ before, roundNotes: [{ kind: "stat", seat: 1, stat: "attack", change: -1 }] });
@@ -42,6 +57,7 @@ describe("los cuadros presentados", () => {
     const frames = buildBattleFrames(turn.before!, turn, 1);
     const values = frames.map((frame) => [frame.battle.myTeam[0]!.hp, frame.battle.rivalTeam[0]!.hp]);
     expect(values).toEqual([[100, 100], [100, 70], [90, 70], [90, 64], [90, 64]]);
+    expect(frames[1]!.text).toBe("Uno usó Placaje.");
     expect(turn.before!.rivalTeam[0]!.hp).toBe(100);
   });
 
