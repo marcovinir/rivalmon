@@ -1,4 +1,4 @@
-import { AUCTION_SCENES, type AuctionConfig, BID_STEPS, type BattleMove, type BidStep, type ErrorCode, type PauseChoice, type Seat, type ServerEvent } from "@pokemon-minigames/shared";
+import { AUCTION_SCENES, type AuctionConfig, BID_STEPS, battleTurnDurationMs, type BattleMove, type BidStep, type ErrorCode, type PauseChoice, type Seat, type ServerEvent } from "@pokemon-minigames/shared";
 import {
   RECONNECT_GRACE_SECONDS,
   REMATCH_ROOM_TTL_SECONDS,
@@ -11,7 +11,7 @@ import { type Effect, type GameEvent, type GameOutcome, type PlayerState, type S
 import { toPokemonView } from "../engine/view.js";
 import { pickOne } from "../rng.js";
 import { type Fighter, availableMoves, bestMove, bothFallenLoser, clearStages, endOfTurn, enterBattle, leaveBattle, newFighter, resolveTurn, roundLimitLoser } from "./combat.js";
-import { AUTO_LOT_MS, INACTIVITY_MS, INACTIVITY_WARNING_MS, LINEUP_MS, MAX_STILL_HERE, MAX_TURNS_PER_ROUND, PAUSE_MS, REVEAL_MS, STARTING_MONEY, TEAM_SIZE, TRAP_ODDS, TURN_ANIMATION_MS, drawLots, startingPrice } from "./rules.js";
+import { AUTO_LOT_MS, INACTIVITY_MS, INACTIVITY_WARNING_MS, LINEUP_MS, MAX_STILL_HERE, MAX_TURNS_PER_ROUND, PAUSE_MS, REVEAL_MS, STARTING_MONEY, TEAM_SIZE, TRAP_ODDS, drawLots, startingPrice } from "./rules.js";
 import type { AuctionDeps, AuctionLot, AuctionState } from "./types.js";
 import { auctionLimit, buildAuctionGameEnded } from "./view.js";
 
@@ -632,9 +632,11 @@ function onSwitch(c: Ctx, seat: Seat, pokemonId: number): void {
 }
 
 function afterChoice(c: Ctx, seat: Seat): void {
-  // Solo a quien eligió: el rival no sabe ni que ya eligió.
-  c.fx.push({ kind: "send_state", to: seat });
+  // Al cerrar se publica primero battle-turn: un send_state previo ya vería los PS finales
+  // del reductor y adelantaría el golpe a quien eligió segundo.
   if (hasChosen(c, otherSeat(seat))) resolveCurrentTurn(c);
+  // Mientras falta alguien, solo quien eligió recibe su confirmación privada.
+  else c.fx.push({ kind: "send_state", to: seat });
 }
 
 function resolveCurrentTurn(c: Ctx): void {
@@ -655,7 +657,8 @@ function resolveCurrentTurn(c: Ctx): void {
   const actions = resolveTurn(sides, { 1: choiceOf(1), 2: choiceOf(2) }, c.deps.rng);
   const endNotes = endOfTurn(sides);
   for (const action of actions) battle.damage[action.actor] += action.damage;
-  emit(c, "all", { name: "battle-turn", payload: { round: battle.round, turn: battle.turn, actions, switches, roundNotes, entryNotes, endNotes } });
+  const presentation = { actions, switches, roundNotes, entryNotes, endNotes };
+  emit(c, "all", { name: "battle-turn", payload: { round: battle.round, turn: battle.turn, ...presentation } });
 
   const fallen = ([1, 2] as const).filter((seat) => sides[seat].hp <= 0);
   if (fallen.length > 0 || battle.turn >= MAX_TURNS_PER_ROUND) {
@@ -671,7 +674,7 @@ function resolveCurrentTurn(c: Ctx): void {
   battle.choosing = false;
   battle.moves = {};
   battle.switches = {};
-  schedule(c, c.now + TURN_ANIMATION_MS, { kind: "battle", step: battle.step });
+  schedule(c, c.now + battleTurnDurationMs(presentation), { kind: "battle", step: battle.step });
   sendStates(c);
 }
 
