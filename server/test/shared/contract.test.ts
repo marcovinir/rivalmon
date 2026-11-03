@@ -41,6 +41,11 @@ describe("paquete shared", () => {
     expect(ERROR_CODES).toContain("USER_NOT_FOUND");
   });
 
+  it("incluye los códigos por correo, sin exigir verificar para entrar", () => {
+    expect(ERROR_CODES).not.toContain("EMAIL_NOT_VERIFIED");
+    for (const code of ["INVALID_CODE", "EMAIL_SEND_FAILED"]) expect(ERROR_CODES).toContain(code);
+  });
+
   it("los motivos de fin y las opciones de tema no se repiten", () => {
     expect(new Set(GAME_END_REASONS).size).toBe(GAME_END_REASONS.length);
     expect(GAME_END_REASONS).toHaveLength(7);

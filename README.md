@@ -96,7 +96,7 @@ npm run typecheck    # tsc across all packages
 npm run e2e          # builds and runs the Playwright suite
 ```
 
-Full setup, every command, the REST API and the Socket.io events are in the [technical guide](docs/guia-tecnica.md); deployment to Render and Neon is in [`docs/despliegue.md`](docs/despliegue.md). Both are in Spanish.
+Full setup, every command, the REST API and the Socket.io events are in the [technical guide](docs/guia-tecnica.md); deployment to Render and Neon is in [`docs/despliegue.md`](docs/despliegue.md), and turning on the emails with codes is in [`docs/correo.md`](docs/correo.md). Both are in Spanish.
 
 ## Project layout
 

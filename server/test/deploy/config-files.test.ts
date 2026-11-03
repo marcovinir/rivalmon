@@ -31,6 +31,15 @@ const ci = parse(read(".github/workflows/ci.yml")) as {
 const rootScripts = (JSON.parse(read("package.json")) as { scripts: Record<string, string> }).scripts;
 const serverScripts = (JSON.parse(read("server/package.json")) as { scripts: Record<string, string> }).scripts;
 
+/** Las variables del Blueprint que traen valor (las demás las pide Render o las genera). */
+const fromBlueprint = (): Record<string, string> =>
+  Object.fromEntries(service.envVars.filter((variable) => variable.value !== undefined).map((variable) => [variable.key, variable.value!]));
+/** Lo que Render completa en el panel: la base de datos y la clave de sesión. */
+const placeholders = {
+  DATABASE_URL: "postgresql://usuario:clave@ep-ejemplo.neon.tech/neondb?sslmode=require",
+  JWT_ACCESS_SECRET: "s".repeat(48),
+};
+
 describe("render.yaml", () => {
   it("define un único servicio web gratuito con comprobación de salud", () => {
     expect(blueprint.services).toHaveLength(1);
@@ -69,22 +78,34 @@ describe("render.yaml", () => {
     expect(read("render.yaml")).not.toMatch(/postgres(ql)?:\/\//);
   });
 
-  it("su configuración la acepta el servidor en producción", () => {
-    const fromBlueprint = Object.fromEntries(
-      service.envVars.filter((variable) => variable.value !== undefined).map((variable) => [variable.key, variable.value!]),
-    );
-    const env = loadEnv({
-      ...fromBlueprint,
-      DATABASE_URL: "postgresql://usuario:clave@ep-ejemplo.neon.tech/neondb?sslmode=require",
-      JWT_ACCESS_SECRET: "s".repeat(48),
-    });
+  it("pide la clave de Resend y el remitente en el panel, sin valor, y deja el interruptor y el proveedor para el panel", () => {
+    const byKey = Object.fromEntries(service.envVars.map((variable) => [variable.key, variable]));
+    expect(byKey.RESEND_API_KEY).toEqual({ key: "RESEND_API_KEY", sync: false });
+    expect(byKey.MAIL_FROM).toEqual({ key: "MAIL_FROM", sync: false });
+    // Se ponen desde el panel de Render (docs/correo.md): si el Blueprint los fijara, una sincronización podría devolver
+    // EMAIL_CODES a «off» sin que nadie lo note.
+    expect(byKey.EMAIL_CODES).toBeUndefined();
+    expect(byKey.MAIL_PROVIDER).toBeUndefined();
+  });
+
+  it("su configuración la acepta el servidor en producción, con el correo apagado", () => {
+    const env = loadEnv({ ...fromBlueprint(), ...placeholders });
     expect(env).toMatchObject({
       NODE_ENV: "production",
       COOKIE_SECURE: true,
       COOKIE_SAME_SITE: "lax",
       TRUST_PROXY: 3,
       CORS_ORIGIN: undefined,
+      EMAIL_CODES: false,
+      MAIL_PROVIDER: undefined,
     });
+  });
+
+  it("sigue arrancando si en el panel de Render quedan en blanco las variables que el Blueprint pide sin valor", () => {
+    const env = loadEnv({ ...fromBlueprint(), ...placeholders, RESEND_API_KEY: "", MAIL_FROM: "" });
+    expect(env.EMAIL_CODES).toBe(false);
+    expect(env.RESEND_API_KEY).toBeUndefined();
+    expect(env.MAIL_FROM).toBeUndefined();
   });
 
   it("pide la misma versión de Node que el resto del proyecto", () => {
@@ -167,12 +188,79 @@ describe("documentación de despliegue", () => {
     expect(read("render.yaml")).not.toMatch(/en Render, 1/);
   });
 
-  it("el README enlaza la guía y .env.example documenta TRUST_PROXY", () => {
-    expect(read("README.md")).toContain("docs/despliegue.md");
-    expect(read("server/.env.example")).toContain("TRUST_PROXY");
+  it("las dos pruebas de TRUST_PROXY envían un cuerpo JSON válido (con otro formato el servidor da 400 y la prueba no mide nada)", () => {
+    const bodies = [...guide.matchAll(/-d '([^']*)'/g)].map((match) => match[1]!);
+    expect(bodies.length).toBeGreaterThanOrEqual(2);
+    for (const body of bodies) {
+      expect(JSON.parse(body)).toMatchObject({ email: expect.any(String), password: expect.any(String) });
+    }
+    expect(guide).not.toMatch(/-d email:/);
+  });
+
+  it("la guía explica las variables del correo y enlaza la guía para activarlo y desactivarlo", () => {
+    for (const variable of ["EMAIL_CODES", "MAIL_PROVIDER", "RESEND_API_KEY", "MAIL_FROM"]) expect(guide).toContain(`\`${variable}\``);
+    expect(guide).toContain("(correo.md)");
+    // Ya existen la verificación y la recuperación por correo (apagadas hasta que se activan).
+    expect(guide).not.toMatch(/recuperación de contraseña por correo ni verificación de correo/);
+  });
+
+  it("el README enlaza las guías y .env.example documenta TRUST_PROXY y las variables del correo", () => {
+    const readme = read("README.md");
+    expect(readme).toContain("docs/despliegue.md");
+    expect(readme).toContain("docs/correo.md");
+    const example = read("server/.env.example");
+    for (const variable of ["TRUST_PROXY", "EMAIL_CODES", "MAIL_PROVIDER", "RESEND_API_KEY", "MAIL_FROM"]) expect(example).toContain(variable);
+  });
+
+  it("la guía técnica documenta las rutas de los códigos por correo", () => {
+    const technical = read("docs/guia-tecnica.md");
+    for (const route of ["/auth/options", "/auth/verification/send", "/auth/verification/confirm", "/auth/password/forgot", "/auth/password/reset"]) {
+      expect(technical).toContain(route);
+    }
+    expect(technical).not.toMatch(/no hay recuperación de contraseña/);
   });
 
   it("existe el archivo de versión de Node que lee Render", () => {
     expect(existsSync(new URL(".node-version", root))).toBe(true);
+  });
+});
+
+describe("guía del correo (docs/correo.md)", () => {
+  // Se lee dentro de cada prueba: si el archivo no existe, falla esa prueba y no todo el archivo.
+  const guide = (): string => read("docs/correo.md");
+  /** El valor de una fila «| `VARIABLE` | `valor` | …» de la tabla de variables de Render. */
+  const valueOf = (variable: string): string | undefined => new RegExp("\\| `" + variable + "` \\| `([^`]+)` \\|").exec(guide())?.[1];
+
+  it("recorre el camino completo: dominio, Resend, registros DNS, clave de solo envío, variables de Render, prueba real y marcha atrás", () => {
+    for (const piece of ["Resend", "dominio", "SPF", "DKIM", "DMARC", "Sending access", "carpeta de spam", "Marcha atrás"]) {
+      expect(guide(), `falta «${piece}»`).toContain(piece);
+    }
+  });
+
+  it("la clave solo se pega en el panel de Render y la guía no trae ninguna", () => {
+    expect(guide()).toMatch(/solo se pega en el panel de Render/);
+    expect(guide()).not.toMatch(/re_[A-Za-z0-9_]{20,}/);
+  });
+
+  it("los valores que manda poner en Render los acepta el servidor en producción", () => {
+    const env = loadEnv({
+      ...fromBlueprint(),
+      ...placeholders,
+      EMAIL_CODES: valueOf("EMAIL_CODES"),
+      MAIL_PROVIDER: valueOf("MAIL_PROVIDER"),
+      MAIL_FROM: valueOf("MAIL_FROM"),
+      RESEND_API_KEY: "re_clave_de_prueba",
+    });
+    expect(env).toMatchObject({ EMAIL_CODES: true, MAIL_PROVIDER: "resend" });
+    expect(env.MAIL_FROM).toMatch(/<[^<>@]+@[^<>@]+>$/);
+  });
+
+  it("pide tener pasadas las dos pruebas de TRUST_PROXY antes de activar el correo (los límites por IP dependen de ello)", () => {
+    expect(guide()).toMatch(/TRUST_PROXY/);
+    expect(guide()).toContain("(despliegue.md");
+  });
+
+  it("explica la marcha atrás: EMAIL_CODES a off", () => {
+    expect(guide()).toContain("`EMAIL_CODES` a `off`");
   });
 });

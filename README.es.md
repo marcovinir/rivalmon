@@ -96,7 +96,7 @@ npm run typecheck    # tsc en todos los paquetes
 npm run e2e          # construye y corre las pruebas de Playwright
 ```
 
-La puesta en marcha completa, todos los comandos, la API REST y los eventos de Socket.io están en la [guía técnica](docs/guia-tecnica.md); el despliegue en Render y Neon, en [`docs/despliegue.md`](docs/despliegue.md).
+La puesta en marcha completa, todos los comandos, la API REST y los eventos de Socket.io están en la [guía técnica](docs/guia-tecnica.md); el despliegue en Render y Neon, en [`docs/despliegue.md`](docs/despliegue.md), y cómo activar los correos con código, en [`docs/correo.md`](docs/correo.md).
 
 ## Estructura
 

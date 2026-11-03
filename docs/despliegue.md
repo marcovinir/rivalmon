@@ -96,7 +96,12 @@ No se puede deshacer.
 | `NODE_VERSION` | `24` | Versión de Node |
 | `CORS_ORIGIN` | *(no se define)* | Con un solo origen no hay CORS; solo se usaría si se alojara el cliente en otro dominio |
 
-Si en el panel de Render llegaste a añadir `EMAIL_VERIFICATION`, `MAIL_PROVIDER`, `RESEND_API_KEY` o `MAIL_FROM` (las cuentas con código por correo se descartaron), puedes borrarlas: el servidor las ignora.
+| `EMAIL_CODES` | `off` (se enciende con [la guía del correo](correo.md)) | Olvidé mi contraseña y verificar el correo; apagado, nada cambia |
+| `MAIL_PROVIDER` | `resend`, al activar | Quién envía los correos; en producción con `EMAIL_CODES=on` solo se admite `resend` |
+| `RESEND_API_KEY` | la clave de Resend, al activar | Solo se pega en el panel de Render: nunca en el repositorio |
+| `MAIL_FROM` | `Rivalmon <no-responder@mail.marcovinir.dev>`, al activar | El remitente de los correos |
+
+Si en el panel de Render quedó `EMAIL_VERIFICATION` de una versión anterior, se puede borrar: el servidor ya no la lee.
 
 ## Seguridad: qué hay y qué no
 
