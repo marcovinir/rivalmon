@@ -67,6 +67,11 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
       COOKIE_SECURE: "true",
       COOKIE_SAME_SITE: "lax",
       TRUST_PROXY: "1",
+      // Los códigos por correo encendidos, sin enviar nada: los correos quedan en un buzón en memoria que la prueba lee en
+      // /auth/test-outbox (en producción esa ruta solo existe con ALLOW_MEMORY_MAIL=true, que solo pone este servidor).
+      EMAIL_CODES: "on",
+      MAIL_PROVIDER: "memory",
+      ALLOW_MEMORY_MAIL: "true",
       // Las siluetas salen siempre de la misma imagen local (la E2E no depende de PokeAPI), salvo con imágenes reales.
       // El servidor exige `{id}` en la plantilla: va en la consulta, que se ignora al leer un archivo.
       ...(process.env.E2E_REAL_IMAGES || process.env.E2E_SCREENSHOTS
