@@ -219,3 +219,42 @@ export function roomCodeOf(page: Page): string {
 export function fact(page: Page, label: string) {
   return page.getByText(label, { exact: true }).locator("xpath=following-sibling::dd");
 }
+
+interface MailboxMessage {
+  to: string;
+  subject: string;
+  text: string;
+}
+
+/**
+ * Los correos que el servidor de la prueba «envió» a esa dirección, del más antiguo al más reciente. El servidor de la
+ * E2E usa `MAIL_PROVIDER=memory` y guarda los mensajes en vez de enviarlos; esta ruta solo existe así.
+ */
+export async function mailbox(context: BrowserContext, email: string): Promise<MailboxMessage[]> {
+  const response = await context.request.get(`/auth/test-outbox?to=${encodeURIComponent(email)}`);
+  expect(response.ok(), "el buzón de pruebas no responde (¿el servidor de la E2E tiene MAIL_PROVIDER=memory?)").toBe(true);
+  return ((await response.json()) as { messages: MailboxMessage[] }).messages;
+}
+
+/** El código del último correo que llegó a la persona; espera a que haya más de `after` (algunos envíos van en segundo plano). */
+export async function codeFor(player: Player, after = 0): Promise<string> {
+  let text = "";
+  await expect
+    .poll(
+      async () => {
+        const messages = await mailbox(player.context, player.email);
+        text = messages.at(-1)?.text ?? "";
+        return messages.length;
+      },
+      { message: `no llegó ningún correo con el código a ${player.email}` },
+    )
+    .toBeGreaterThan(after);
+  const code = /\b(\d{6})\b/.exec(text)?.[1];
+  if (!code) throw new Error(`El correo no trae un código de seis dígitos:\n${text}`);
+  return code;
+}
+
+/** Un código de seis dígitos que no es el verdadero. */
+export function wrongCode(real: string): string {
+  return real === "000000" ? "111111" : "000000";
+}

@@ -17,6 +17,8 @@ export async function anonymizeAccount(prisma: PrismaClient, hasher: PasswordHas
       where: { id: userId },
       data: {
         email: `borrada-${userId}@invalid`,
+        // Sin correo real tampoco hay nada verificado.
+        emailVerifiedAt: null,
         username: deletedUsernameFor(userId),
         passwordHash,
         avatarPokemonId: null,
@@ -26,6 +28,8 @@ export async function anonymizeAccount(prisma: PrismaClient, hasher: PasswordHas
     });
     if (updated.count === 0) return false;
     await tx.refreshToken.deleteMany({ where: { userId } });
+    // Ni códigos pendientes: la fila se conserva (por el historial de los rivales) y la cascada no actuaría.
+    await tx.emailCode.deleteMany({ where: { userId } });
     return true;
   });
 }

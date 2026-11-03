@@ -1,6 +1,8 @@
 import { avatarPokemonName } from "@pokemon-minigames/shared";
 import { useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { useEmailCodes } from "../../session/auth-options";
+import { EmailVerification } from "./EmailVerification";
 import { ApiError } from "../../api/client";
 import { isGuest } from "../../api/types";
 import { Avatar } from "../../components/Avatar";
@@ -29,6 +31,7 @@ export function ProfilePage() {
   // Al cerrar la ventana el foco vuelve a «Cambiar avatar» (Button no reenvía refs: se busca dentro de su envoltorio).
   const changeRef = useRef<HTMLDivElement>(null);
   const own = username === undefined;
+  const emailCodes = useEmailCodes();
   const { state, reload } = useLoad(
     () => (username === undefined ? endpoints.stats.mine() : endpoints.stats.forUser(username)),
     [endpoints, username],
@@ -91,6 +94,7 @@ export function ProfilePage() {
       {picking ? <AvatarPicker current={avatarId} name={name} onClose={closePicker} /> : null}
       <StatsView stats={stats} own={own} />
       {own ? <HistoryList /> : null}
+      {own && account && emailCodes ? <EmailVerification email={account.email} verified={account.emailVerified ?? false} /> : null}
       {own && account ? <DeleteAccount /> : null}
       <div>
         <Button onClick={() => navigate("/")}>{MENU_TEXT.backToMenu}</Button>

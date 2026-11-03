@@ -3,6 +3,7 @@ import { createPokedexStore } from "../../src/catalog/pokedex-store.js";
 import type { Express } from "express";
 import { createApp } from "../../src/app.js";
 import type { RateLimitConfig } from "../../src/http/limits.js";
+import type { Mailer } from "../../src/mail/mailer.js";
 import type { PokemonCatalog } from "../../src/catalog/pokemon-catalog.js";
 import { createTokenService } from "../../src/auth/tokens.js";
 import { loadEnv } from "../../src/config/env.js";
@@ -25,6 +26,8 @@ export interface TestContextOptions {
   catalog?: PokemonCatalog;
   /** Límites de peticiones (por defecto apagados: muchas pruebas registran a más personas de las que permite la IP). */
   rateLimits?: RateLimitConfig;
+  /** El correo (por defecto, el que diga la configuración). */
+  mailer?: Mailer;
 }
 
 /**
@@ -51,7 +54,7 @@ export function buildTestContext(overrides: Record<string, string> = {}, options
     persistRetryDelayMs: 0,
     silhouettes,
   });
-  const app = createApp({ pokedex: createPokedexStore(TEST_POKEDEX), env, prisma, tokens, roomManager, catalog, rateLimits: options.rateLimits ?? "off", silhouettes });
+  const app = createApp({ pokedex: createPokedexStore(TEST_POKEDEX), env, prisma, tokens, roomManager, catalog, rateLimits: options.rateLimits ?? "off", silhouettes, mailer: options.mailer });
   return { app, env, tokens, time, broadcaster, store, roomManager, catalog, silhouettes };
 }
 

@@ -16,6 +16,8 @@ export interface AuthFormProps {
   validate(values: { email: string; username: string; password: string }): FieldErrors;
   onSubmit(values: { email: string; username: string; password: string }): Promise<void>;
   footer: ReactNode;
+  /** Algo más bajo el botón (p. ej. «¿Olvidaste tu contraseña?»). */
+  extra?: ReactNode;
 }
 
 /** El 429 dice cuánto esperar; los demás errores ya traen su mensaje en español. */
@@ -23,7 +25,7 @@ const describe = (error: ApiError): string =>
   error.code === "RATE_LIMITED" ? rateLimitMessage(retryAfterOf(error.details)) : error.message;
 
 /** Formulario común de inicio de sesión y registro: valida, envía y muestra los errores del servidor. */
-export function AuthForm({ title, submitLabel, withUsername = false, validate, onSubmit, footer }: AuthFormProps) {
+export function AuthForm({ title, submitLabel, withUsername = false, validate, onSubmit, footer, extra }: AuthFormProps) {
   const [values, setValues] = useState({ email: "", username: "", password: "" });
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -90,6 +92,7 @@ export function AuthForm({ title, submitLabel, withUsername = false, validate, o
         <Button type="submit" variant="primary" size="lg" loading={submitting}>
           {submitLabel}
         </Button>
+        {extra ? <div className="text-center">{extra}</div> : null}
       </form>
       <p className="mt-5 border-t-(length:--frame) border-line pt-4 text-sm text-muted">{footer}</p>
     </Card>

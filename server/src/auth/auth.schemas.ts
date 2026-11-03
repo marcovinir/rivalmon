@@ -46,3 +46,9 @@ export const deleteAccountSchema = z.object({ password: z.string().min(1, "Escri
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+
+/** Los códigos por correo (#64): seis dígitos, con cualquier otra cosa no se gasta ningún intento. */
+const code = z.string().regex(/^\d{6}$/, "El código son 6 dígitos");
+export const emailOnlySchema = z.object({ email });
+export const codeOnlySchema = z.object({ code });
+export const resetPasswordSchema = z.object({ email, code, password: registerSchema.shape.password });

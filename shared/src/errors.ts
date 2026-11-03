@@ -15,6 +15,9 @@ export const ERROR_CODES = [
   "USER_NOT_FOUND",
   "POKEMON_NOT_FOUND",
   "INTERNAL_ERROR",
+  // Códigos por correo: recuperar la contraseña y verificar el correo (#64)
+  "INVALID_CODE",
+  "EMAIL_SEND_FAILED",
   // Salas (REST)
   "ALREADY_IN_GAME",
   "ROOM_NOT_FOUND",

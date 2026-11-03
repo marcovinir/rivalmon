@@ -5,6 +5,7 @@ import { LoadingScreen } from "./components/LoadingScreen";
 import { isGuest } from "./api/types";
 import { useSession } from "./services";
 import { LoginPage, RegisterPage } from "./pages/AuthPages";
+import { ForgotPasswordPage, ResetPasswordPage } from "./pages/PasswordRecoveryPages";
 import { INFO_PAGES, INFO_SLUGS } from "./i18n/info";
 import { InfoPage } from "./pages/InfoPage";
 import { LobbyRoute } from "./pages/Lobby";
@@ -63,6 +64,8 @@ export function AppRoutes() {
       <Route element={<PublicOnly />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegisterPage />} />
+        <Route path="/olvide" element={<ForgotPasswordPage />} />
+        <Route path="/restablecer" element={<ResetPasswordPage />} />
       </Route>
       <Route element={<RequireAuth />}>
         <Route path="/" element={<MainMenu />} />

@@ -9,6 +9,8 @@ export interface AuthUser {
   preferences: ThemePreferences | null;
   /** Número de Pokédex de su avatar; nulo = iniciales. */
   avatarId: number | null;
+  /** Demostró que el correo es suyo. Opcional: un servidor anterior no lo manda. */
+  emailVerified?: boolean;
 }
 
 /** Quien entró como invitado: sin cuenta, sin correo y sin estadísticas; su partida no se guarda. */

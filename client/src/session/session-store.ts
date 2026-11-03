@@ -16,6 +16,8 @@ export interface SessionState {
   logout(): Promise<void>;
   /** Guarda el avatar de la cuenta y lo pone en la sesión; si falla, lanza y no cambia nada. */
   saveAvatar(avatarId: number | null): Promise<void>;
+  /** El correo de la cuenta quedó verificado: se refleja en la sesión sin pedirla de nuevo. */
+  markEmailVerified(): void;
   /** Borra la cuenta con su contraseña y deja la sesión cerrada; si falla, lanza y la sesión sigue. */
   deleteAccount(password: string): Promise<void>;
   /**
@@ -72,6 +74,11 @@ export function createSessionStore(endpoints: Endpoints): StoreApi<SessionState>
       const { user } = get();
       // Un invitado no tiene avatar (ni puede guardarlo): su sesión no se toca.
       if (user && !isGuest(user)) set({ user: { ...user, avatarId: saved } });
+    },
+
+    markEmailVerified() {
+      const { user } = get();
+      if (user && !isGuest(user)) set({ user: { ...user, emailVerified: true } });
     },
 
     async deleteAccount(password) {
