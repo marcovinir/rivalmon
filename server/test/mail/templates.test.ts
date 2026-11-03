@@ -9,8 +9,17 @@ describe("el correo de verificación", () => {
     expect(mail.subject).toBe("Tu código de Rivalmon");
   });
 
-  it("el texto lleva solo el código, cuánto dura y qué hacer si no se pidió", () => {
-    expect(mail.text).toBe("Tu código de verificación es 048213.\nCaduca en 10 minutos. Si no lo pediste, ignora este mensaje.");
+  it("el texto lleva el código, cuánto dura, qué hacer si no se pidió y la firma de Rivalmon", () => {
+    expect(mail.text).toBe(
+      "Verifica tu correo\n\nTu código de verificación es 048213.\nCaduca en 10 minutos. Si no lo pediste, ignora este mensaje.\n\n— Rivalmon · Minijuegos Pokémon 1 vs 1\nProyecto de fans sin fines de lucro. No respondas a este correo.",
+    );
+  });
+
+  it("el HTML lleva la cabecera de Rivalmon con sus colores, el título y el pie", () => {
+    expect(mail.html).toContain(">Rivalmon<");
+    for (const color of ["#e5352b", "#2563d9", "#ffcb05"]) expect(mail.html).toContain(color);
+    expect(mail.html).toContain(">Verifica tu correo<");
+    expect(mail.html).toContain("Proyecto de fans sin fines de lucro. No respondas a este correo.");
   });
 
   it("el HTML lleva el mismo código y las mismas frases, sin enlaces, imágenes ni direcciones web", () => {
@@ -33,8 +42,9 @@ describe("el correo para cambiar la contraseña", () => {
   it("tiene su propio asunto y su propio texto, que aclara que la contraseña no cambia si no se pidió", () => {
     expect(mail.subject).toBe("Código para cambiar tu contraseña de Rivalmon");
     expect(mail.text).toBe(
-      "Tu código para cambiar la contraseña es 999000.\nCaduca en 10 minutos. Si no lo pediste, ignora este mensaje: tu contraseña no cambia.",
+      "Cambia tu contraseña\n\nTu código para cambiar la contraseña es 999000.\nCaduca en 10 minutos. Si no lo pediste, ignora este mensaje: tu contraseña no cambia.\n\n— Rivalmon · Minijuegos Pokémon 1 vs 1\nProyecto de fans sin fines de lucro. No respondas a este correo.",
     );
+    expect(mail.html).toContain(">Cambia tu contraseña<");
   });
 
   it("el HTML repite el código y no lleva enlaces", () => {
