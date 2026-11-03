@@ -12,6 +12,12 @@ import type {
 import type { ApiClient } from "./client";
 import type { AuthSession, PokemonName } from "./types";
 
+export interface ResetPasswordInput {
+  email: string;
+  code: string;
+  password: string;
+}
+
 export interface Credentials {
   email: string;
   password: string;
@@ -41,6 +47,16 @@ export interface Endpoints {
     /** Guarda el avatar (uno de los 24, o `null` para volver a las iniciales); devuelve lo guardado. */
     saveAvatar(avatarId: number | null): Promise<number | null>;
     /** Borra (anonimiza) la cuenta con su contraseña; si sale bien, el token se olvida. */
+    /** Qué funciones de cuentas están encendidas en el servidor. */
+    options(): Promise<{ emailCodes: boolean }>;
+    /** Envía el código para verificar el correo de la propia cuenta. */
+    sendVerification(): Promise<void>;
+    /** Comprueba el código y deja el correo verificado. */
+    confirmVerification(code: string): Promise<void>;
+    /** Pide el código para cambiar la contraseña (el servidor contesta lo mismo exista o no la cuenta). */
+    forgotPassword(email: string): Promise<void>;
+    /** Cambia la contraseña con el código; no abre sesión. */
+    resetPassword(input: ResetPasswordInput): Promise<void>;
     deleteAccount(password: string): Promise<void>;
   };
   rooms: {
@@ -82,6 +98,19 @@ export function createEndpoints(api: ApiClient): Endpoints {
       register: (input) => startSession("/auth/register", input),
       login: (input) => startSession("/auth/login", input),
       guest: (username) => startSession("/auth/guest", { username }),
+      options: () => api.request<{ emailCodes: boolean }>("GET", "/auth/options", { auth: false }),
+      async sendVerification() {
+        await api.request<unknown>("POST", "/auth/verification/send");
+      },
+      async confirmVerification(code) {
+        await api.request<unknown>("POST", "/auth/verification/confirm", { body: { code } });
+      },
+      async forgotPassword(email) {
+        await api.request<unknown>("POST", "/auth/password/forgot", { body: { email }, auth: false });
+      },
+      async resetPassword(input) {
+        await api.request<unknown>("POST", "/auth/password/reset", { body: input, auth: false });
+      },
       refresh: () => api.refreshSession(),
       async logout() {
         try {

@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Notice } from "../components/Notice";
 import { useServices } from "../services";
 import { AuthForm } from "./AuthForm";
-import { AuthHero } from "./AuthHero";
+import { useEmailCodes } from "../session/auth-options";
+import { AuthLayout } from "./AuthLayout";
 import { GuestEntry } from "./GuestEntry";
 import { validateLogin, validateRegistration } from "./auth-validation";
 
@@ -13,22 +13,14 @@ function useReturnPath(): string {
   return state?.from?.pathname ?? "/";
 }
 
-/** El lema y la explicación a un lado y el formulario al otro (uno encima del otro en pantallas estrechas). */
-function AuthLayout({ children }: { children: ReactNode }) {
-  return (
-    <div className="mx-auto grid max-w-4xl grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12">
-      <AuthHero />
-      {children}
-    </div>
-  );
-}
-
 export function LoginPage() {
   const { session } = useServices();
   const navigate = useNavigate();
   const returnTo = useReturnPath();
   // Un aviso que trae la navegación (p. ej. «Tu cuenta se borró.» al borrar la cuenta).
   const notice = (useLocation().state as { notice?: string } | null)?.notice;
+  // Con el interruptor apagado no hay correos que enviar: no se ofrece recuperar la contraseña.
+  const emailCodes = useEmailCodes();
 
   return (
     <AuthLayout>
@@ -38,6 +30,13 @@ export function LoginPage() {
           title="Iniciar sesión"
           submitLabel="Entrar"
           validate={validateLogin}
+          extra={
+            emailCodes ? (
+              <Link to="/olvide" className="text-sm font-semibold text-accent underline">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            ) : undefined
+          }
           onSubmit={async ({ email, password }) => {
             await session.getState().login({ email, password });
             navigate(returnTo, { replace: true });

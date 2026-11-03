@@ -46,6 +46,8 @@ const ERROR_MESSAGES: Record<ErrorCode | typeof NETWORK_ERROR, string> = {
   UNAUTHORIZED: "Tu sesión expiró. Inicia sesión de nuevo.",
   FORBIDDEN: "Esa petición no está permitida desde este sitio.",
   ACCOUNT_REQUIRED: "Necesitas una cuenta para esto.",
+  INVALID_CODE: "Código incorrecto o vencido. Revisa tu correo o pide uno nuevo.",
+  EMAIL_SEND_FAILED: "No pudimos enviar el correo. Inténtalo de nuevo en un momento.",
   INVALID_REFRESH_TOKEN: "Tu sesión expiró. Inicia sesión de nuevo.",
   NOT_FOUND: "No encontramos lo que buscas.",
   USER_NOT_FOUND: "No encontramos a ese jugador.",
