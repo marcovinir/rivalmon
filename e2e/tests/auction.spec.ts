@@ -87,6 +87,10 @@ test("una partida completa: puja, revelación, alineación, combate, resumen y r
   expect(moneyWentDown, "el dinero baja al comprar").toBe(true);
   await ash.page.getByRole("button", { name: "Listo" }).click();
   await expect(ash.page.getByRole("button", { name: "Esperando al rival…" })).toBeDisabled();
+  // Recargar conserva la revelación y el «Listo» ya enviado, sin reiniciar el plazo.
+  await ash.page.reload();
+  await expect(revealTitle(ash.page)).toBeVisible();
+  await expect(ash.page.getByRole("button", { name: "Esperando al rival…" })).toBeDisabled();
   await misty.page.getByRole("button", { name: "Listo" }).click();
 
   // Alineación: uno cambia el orden, y el titular es el que eligió.
