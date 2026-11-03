@@ -32,8 +32,8 @@ for (const reduced of [false, true]) {
           expect(box!.x + box!.width).toBeLessThanOrEqual(width);
           expect(box!.y + box!.height + await page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(760);
         }
-        const final = presentationBattle({ turn, choosing: false, moves: [], myTeam: before.myTeam.map((one, index) => index === 0 ? { ...one, hp: 75, stages: { attack: 1 } } : one), rivalTeam: [{ ...before.rivalTeam[0]!, hp: 58, status: "poison" }] });
-        fixture.resolve({ round: 1, turn, actions: [presentationHit({ notes: [{ kind: "status", seat: 2, status: "poison" }, { kind: "stat", seat: 1, stat: "attack", change: 1 }] }), presentationHit({ actor: 2, damage: 25, actorHp: 70, targetHp: 75 })], endNotes: [{ kind: "residual", seat: 2, cause: "poison", damage: 12 }] }, final);
+        const final = presentationBattle({ turn, choosing: false, moves: [], myTeam: before.myTeam.map((one, index) => index === 0 ? { ...one, hp: 75, stages: { attack: 1, defense: 1 } } : one), rivalTeam: [{ ...before.rivalTeam[0]!, hp: 58, status: "poison" }] });
+        fixture.resolve({ round: 1, turn, actions: [presentationHit({ notes: [{ kind: "status", seat: 2, status: "poison" }, { kind: "stat", seat: 1, stat: "attack", change: 1 }, { kind: "stat", seat: 1, stat: "defense", change: 1 }] }), presentationHit({ actor: 2, damage: 25, actorHp: 70, targetHp: 75 })], endNotes: [{ kind: "residual", seat: 2, cause: "poison", damage: 12 }] }, final);
         await expect(page.locator("[data-battle-step]")).toHaveAttribute("data-battle-step", "windup");
         await expect(page.getByRole("meter", { name: "PS de Charizard" })).toHaveAttribute("aria-valuenow", "100");
         await page.clock.runFor(249);
@@ -58,6 +58,12 @@ for (const reduced of [false, true]) {
         await page.locator("[data-arena]").screenshot({ path: testInfo.outputPath(`${width}-veneno.png`) });
         await page.clock.runFor(900);
         await expect(page.locator(".battle-boost-up")).toBeVisible();
+        const firstSignal = await page.locator(".battle-boost-up").evaluate((element) => getComputedStyle(element).animationName);
+        await page.clock.runFor(900);
+        await expect(page.locator("[data-battle-step]")).toContainText("Defensa");
+        const secondSignal = await page.locator(".battle-boost-up").evaluate((element) => ({ name: getComputedStyle(element).animationName, active: element.getAnimations().length }));
+        expect(secondSignal.name, "cada stat consecutivo reinicia su señal sobre el Pokémon").not.toBe(firstSignal);
+        expect(secondSignal.active).toBeGreaterThan(0);
         await page.clock.runFor(900);
         await expect(page.getByRole("meter", { name: "PS de Bulbasaur" })).toHaveAttribute("aria-valuenow", "100");
         await page.clock.runFor(250);

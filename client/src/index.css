@@ -570,6 +570,10 @@ body::before {
 @keyframes battle-mark {
   40% { filter: drop-shadow(0 0 10px var(--battle-mark)) brightness(1.7); }
 }
+/* Alternar el nombre reinicia también dos efectos iguales consecutivos. */
+@keyframes battle-mark-alt {
+  40% { filter: drop-shadow(0 0 10px var(--battle-mark)) brightness(1.7); }
+}
 .battle-afflicted-burn,
 .battle-afflicted-poison,
 .battle-afflicted-paralysis,
@@ -577,6 +581,7 @@ body::before {
 .battle-boost-up,
 .battle-boost-down,
 .battle-heal { animation: battle-mark 900ms ease-out; }
+.battle-cue-alt { animation-name: battle-mark-alt; }
 .battle-afflicted-burn { --battle-mark: #ff975f; }
 .battle-afflicted-poison { --battle-mark: #d699ff; }
 .battle-afflicted-paralysis { --battle-mark: #ffe17a; }

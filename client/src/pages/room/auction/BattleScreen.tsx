@@ -74,6 +74,10 @@ export function BattleScreen() {
     const effect = playback.frame?.effects[seat] ?? "";
     if (effect === "battle-hit") return reduced ? "battle-flash" : effect;
     if (effect === "battle-lunge") return reduced ? "" : seat === mySeat ? effect : `${effect} battle-lunge-left`;
+    // Dos notas seguidas deben reiniciar el pulso sin remontar el sprite ni reiniciar su GIF.
+    if (effect.startsWith("battle-afflicted-") || effect.startsWith("battle-boost-") || effect === "battle-heal") {
+      return (playback.index ?? 0) % 2 ? `${effect} battle-cue-alt` : effect;
+    }
     return effect;
   };
   // El K.O. sale cuando acaba el golpe que lo causó.
