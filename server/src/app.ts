@@ -4,6 +4,9 @@ import express, { type Express } from "express";
 import { createAuthRouter } from "./auth/auth.routes.js";
 import { GUEST_SESSION_TTL_MS, createGuestSessions } from "./auth/guest-sessions.js";
 import { AuthService } from "./auth/auth.service.js";
+import { createEmailCodesRouter } from "./auth/email-codes.mount.js";
+import { createMailer } from "./mail/create-mailer.js";
+import type { Mailer } from "./mail/mailer.js";
 import { createPasswordHasher } from "./auth/password.js";
 import type { TokenService } from "./auth/tokens.js";
 import { createCatalogRouter } from "./catalog/catalog.routes.js";
@@ -40,6 +43,8 @@ export interface AppDeps {
   /** El mismo registro que usa el `RoomManager`: con uno distinto, todas las siluetas darían 404. */
   silhouettes: SilhouetteRegistry;
   pokedex: PokedexStore;
+  /** El correo; por defecto, el que diga la configuración. Las pruebas pasan uno en memoria. */
+  mailer?: Mailer;
 }
 
 export function createApp({
@@ -52,6 +57,7 @@ export function createApp({
   clientDist,
   silhouettes,
   pokedex,
+  mailer = createMailer(env),
 }: AppDeps): Express {
   const limits = rateLimits === "off" ? null : rateLimits;
   const limiters = limits && {
@@ -87,6 +93,7 @@ export function createApp({
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
   });
+  app.use("/auth", createEmailCodesRouter({ env, prisma, tokens, mailer, limits }));
   app.use("/auth", createAuthRouter({ env, authService, tokens, guests, limiters: limiters ?? undefined }));
   app.use("/rooms", createRoomsRouter({ manager: roomManager, tokens, readAvatar: (userId) => authService.avatarOf(userId) }));
   app.use("/pokemon", createCatalogRouter({ catalog, pokedex }));

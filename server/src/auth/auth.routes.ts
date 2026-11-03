@@ -36,6 +36,7 @@ function toUserDto(user: AuthUser) {
     createdAt: user.createdAt.toISOString(),
     preferences: user.preferences,
     avatarId: user.avatarId,
+    emailVerified: user.emailVerified,
   };
 }
 

@@ -15,6 +15,8 @@ export interface AuthUser {
   preferences: ThemePreferences | null;
   /** Número de Pokédex de su avatar; nulo = iniciales. */
   avatarId: number | null;
+  /** Demostró que el correo es suyo (#64). Es opcional: hoy no bloquea nada. */
+  emailVerified: boolean;
 }
 
 /** Lo que el servicio necesita de una fila de `users`. */
@@ -26,6 +28,7 @@ interface UserRow {
   theme: ThemeName | null;
   themeMode: ThemeMode | null;
   avatarPokemonId: number | null;
+  emailVerifiedAt: Date | null;
 }
 
 export interface AuthResult {
@@ -56,6 +59,7 @@ function toAuthUser(user: UserRow): AuthUser {
     // La base de datos exige que tema y modo vayan juntos, así que basta con mirar uno.
     preferences: user.theme && user.themeMode ? { theme: user.theme, themeMode: user.themeMode } : null,
     avatarId: user.avatarPokemonId,
+    emailVerified: user.emailVerifiedAt !== null,
   };
 }
 

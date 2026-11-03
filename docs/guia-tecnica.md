@@ -96,7 +96,7 @@ El servidor sirve el cliente construido, la API y Socket.io desde un solo origen
 
 ## Cuentas
 
-Registrarse pide correo, nombre de usuario y contraseña y abre la sesión en el acto: **no hay verificación del correo ni códigos por correo** (se descartaron a propósito). Consecuencia: **no hay recuperación de contraseña**; quien la olvida no puede recuperar esa cuenta. Para jugar sin cuenta está el [modo invitado](#modo-invitado). Los intentos de acceso están limitados por IP (ver abajo).
+Registrarse pide correo, nombre de usuario y contraseña y abre la sesión en el acto. Con `EMAIL_CODES=on` ([guía del correo](correo.md)) hay además **¿Olvidaste tu contraseña?**, con un código de 6 dígitos por correo, y **verificar el correo** desde el perfil, que es opcional y no bloquea nada (el usuario lleva `emailVerified`; más adelante lo pedirá el matchmaking). Los códigos duran 10 minutos, valen una vez y admiten 5 intentos. Para jugar sin cuenta está el [modo invitado](#modo-invitado). Los intentos de acceso están limitados por IP (ver abajo).
 
 ## Modo invitado
 
@@ -200,6 +200,11 @@ Para regenerar las capturas de arriba: `E2E_SCREENSHOTS=1 npm run e2e -w e2e -- 
 | `PUT /auth/me/preferences` | Guarda el tema: `{ theme: "clasico" \| "pokedex", themeMode: "auto" \| "claro" \| "oscuro" }` |
 | `DELETE /auth/me` | Borra (anonimiza) la cuenta: `{ password }`. 204 y borra las cookies de sesión; contraseña equivocada: `403 WRONG_PASSWORD` (cuenta en el límite de fallos de login por IP); un invitado: `403 ACCOUNT_REQUIRED` |
 | `PUT /auth/me/avatar` | Guarda el avatar: `{ avatarId }`, el número de Pokédex de uno de los 24 de `shared/src/avatars.ts` o `null` para volver a las iniciales; devuelve `{ avatarId }`. Cualquier otro valor: `400 VALIDATION_ERROR` |
+| `GET /auth/options` | Qué funciones de cuentas están encendidas: `{ emailCodes }` |
+| `POST /auth/verification/send` | Con cuenta: envía el código para verificar el correo. `202`; ya verificado, `202` sin enviar; invitado: `403 ACCOUNT_REQUIRED`; el proveedor falló: `502 EMAIL_SEND_FAILED`. Solo con `EMAIL_CODES=on` |
+| `POST /auth/verification/confirm` | Con cuenta: `{ code }` (6 dígitos). `200 { emailVerified: true }` o `400 INVALID_CODE`. Solo con `EMAIL_CODES=on` |
+| `POST /auth/password/forgot` | `{ email }`: envía el código para cambiar la contraseña si hay una cuenta con ese correo. Siempre `202`, exista o no. Solo con `EMAIL_CODES=on` |
+| `POST /auth/password/reset` | `{ email, code, password }`: cambia la contraseña, cierra todas las sesiones de la cuenta y verifica el correo. `204` o `400 INVALID_CODE`. Solo con `EMAIL_CODES=on` |
 | `POST /rooms` | Crea una sala de «Doble tipo»: `{ game?: "doble_tipo", typeMode: "random" \| "chosen", lengthMode: "fixed_rounds" \| "custom", roundsLimit?, statsGoal?, typeHints? }`, o de silueta: `{ game: "silueta", rounds?: 5 \| 10 \| 15, generations?: number[] }` (por defecto 10 y `[1]`); devuelve `{ code }`. Sin `game` es «Doble tipo». Una clave que no corresponde al juego elegido se rechaza con `400 VALIDATION_ERROR` (no se ignora en silencio). `typeHints` (booleano, `false` por omisión) activa las «Pistas de tipos»: las sugerencias muestran los tipos de cada Pokémon |
 | `POST /rooms` (subasta) | Crea una sala de subasta: `{ game: "subasta", traps?: boolean }`; sin `traps`, con siluetas trampa |
 | `GET /rooms/current` | La sala activa del usuario: `{ room: { code, phase } }` o `{ room: null }` |
