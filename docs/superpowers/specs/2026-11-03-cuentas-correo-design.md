@@ -1,6 +1,6 @@
 # Rivalmon: olvidé mi contraseña y verificar el correo
 
-Issue #64. Fecha: 2026-11-03. **Pendiente de aprobación de Marco.**
+Issue #64. Fecha: 2026-11-03. Aprobada por Marco el 2026-11-03.
 
 Parte de la etapa 7 (`2026-10-07-etapa-7-cuentas-design.md`, código en `git diff a5beec0^ 67c1e77`), que se retiró en la #2. Esta spec manda donde difieren; lo que no dice, se toma de aquella.
 
