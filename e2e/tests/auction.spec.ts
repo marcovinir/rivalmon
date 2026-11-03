@@ -214,6 +214,8 @@ test("la revelación conserva el contraste en los cuatro temas, en móvil y escr
       await page.setViewportSize({ width, height: 900 });
       await page.mouse.move(0, 0);
       await expect.poll(() => page.locator("[data-reveal-entry] img").first().evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+      // Se mide el contraste en reposo, sin tomar una tarjeta a mitad de su animación de entrada.
+      await page.addStyleTag({ content: "*, *::before, *::after { animation: none !important; transition: none !important; }" });
       await page.addScriptTag({ content: audit });
       const report = await page.evaluate(() => (window as unknown as { __contrastAuditAll(): Promise<Record<string, string[]>> }).__contrastAuditAll());
       expect.soft(report, `${width} px: contraste del texto de la revelación`).toEqual({
@@ -234,6 +236,7 @@ test("la revelación conserva el contraste en los cuatro temas, en móvil y escr
             expect.soft(hovered, `${width} px, ${theme}/${mode}, sobre «Listo»`).toEqual([]);
             await page.mouse.move(0, 0);
           }
+          await page.evaluate(() => window.scrollTo(0, 0));
           await page.screenshot({ path: testInfo.outputPath(`${width}-${theme}-${mode}.png`), fullPage: true });
         }
       }
