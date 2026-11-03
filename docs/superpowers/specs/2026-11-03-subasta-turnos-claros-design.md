@@ -1,6 +1,6 @@
 # Subasta Pokémon: turnos claros y presentación por pasos
 
-Issue #59. **Spec aprobada por Marco el 2026-11-03.** Implementación en curso en el PR #70.
+Issue #59. **Spec aprobada por Marco el 2026-11-03.** Implementación en el PR #70.
 
 ## Intención y alcance
 
