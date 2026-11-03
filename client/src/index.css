@@ -516,6 +516,317 @@ body::before {
   animation: battle-blink 300ms linear;
 }
 
+/*
+ * Los efectos de ataque (AttackEffect.tsx). Cada pieza es una caja del tamaño de la arena que se traslada: así un porcentaje
+ * de `translate` es un porcentaje de la arena, y el camino va de un Pokémon al otro con cualquier ancho. Dentro, `attack-anchor`
+ * es el punto de salida y `attack-shape` el dibujo. Los puntos siguen a `battle-spot-*`, a la altura del cuerpo del sprite.
+ */
+.attack-effect {
+  --back-x: 24%;
+  --back-y: 72%;
+  --front-x: 74%;
+  --front-y: 59%;
+  --attack-scale: 1;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* Todo el efecto es una sola capa: lo que venga después en la arena (los recuadros de PS) queda encima. */
+  isolation: isolate;
+  pointer-events: none;
+}
+.attack-effect[data-from="left"] {
+  --start-x: var(--back-x);
+  --start-y: var(--back-y);
+  --end-x: var(--front-x);
+  --end-y: var(--front-y);
+  --heading: -10deg;
+}
+.attack-effect[data-from="right"] {
+  --start-x: var(--front-x);
+  --start-y: var(--front-y);
+  --end-x: var(--back-x);
+  --end-y: var(--back-y);
+  --heading: 170deg;
+}
+@media (min-width: 40rem) {
+  .attack-effect {
+    --back-x: 26%;
+    --front-x: 71%;
+  }
+}
+@media (min-width: 64rem) {
+  .attack-effect {
+    --attack-scale: 1.7;
+  }
+}
+.attack-particle {
+  --dx: calc(var(--end-x) - var(--start-x));
+  --dy: calc(var(--end-y) - var(--start-y));
+  position: absolute;
+  inset: 0;
+  animation-duration: var(--duration);
+  animation-delay: var(--delay);
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+}
+.attack-anchor {
+  position: absolute;
+  left: calc(var(--start-x) + (var(--end-x) - var(--start-x)) * var(--along));
+  top: calc(var(--start-y) + (var(--end-y) - var(--start-y)) * var(--along));
+  transform: translate(calc(var(--x) * var(--attack-scale)), calc(var(--y) * var(--attack-scale)));
+}
+.attack-shape {
+  position: absolute;
+  width: calc(var(--size) * var(--attack-scale));
+  height: calc(var(--size) * var(--attack-scale));
+  overflow: visible;
+  translate: -50% -50%;
+  animation: attack-pop var(--duration) ease-out var(--delay) both;
+}
+.attack-aimed {
+  rotate: var(--heading);
+}
+.attack-spin {
+  animation: attack-pop var(--duration) ease-out var(--delay) both, attack-spin var(--duration) linear var(--delay) both;
+}
+.attack-fly {
+  animation-name: attack-fly;
+}
+.attack-arc {
+  animation-name: attack-arc;
+}
+.attack-weave {
+  --sway: -9%;
+  animation-name: attack-weave;
+}
+.attack-weave-back {
+  --sway: 9%;
+  animation-name: attack-weave;
+}
+.attack-strike {
+  animation-name: attack-strike;
+}
+.attack-strike .attack-shape {
+  animation-name: attack-burst;
+}
+.attack-rise {
+  animation-name: attack-rise;
+}
+.attack-rise .attack-shape {
+  transform-origin: bottom center;
+  animation-name: attack-grow;
+}
+/* Las líneas ocupan justo el rectángulo que hay entre los dos Pokémon; lanzadas desde la derecha, ese rectángulo se da la vuelta. */
+.attack-beam .attack-anchor,
+.attack-flicker .attack-anchor {
+  left: var(--back-x);
+  top: var(--front-y);
+  width: calc(var(--front-x) - var(--back-x));
+  height: calc(var(--back-y) - var(--front-y));
+  transform: none;
+}
+.attack-effect[data-from="right"] .attack-beam .attack-anchor,
+.attack-effect[data-from="right"] .attack-flicker .attack-anchor {
+  transform: rotate(180deg);
+}
+.attack-beam .attack-shape,
+.attack-flicker .attack-shape {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  translate: none;
+}
+.attack-beam {
+  animation-name: attack-beam;
+}
+.attack-beam .attack-shape {
+  animation-name: attack-extend;
+}
+.attack-flicker {
+  animation-name: attack-flicker;
+}
+.attack-flicker .attack-shape {
+  animation: none;
+}
+@keyframes attack-fly {
+  0% {
+    opacity: 0;
+    transform: none;
+  }
+  12%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy));
+  }
+}
+@keyframes attack-arc {
+  0% {
+    opacity: 0;
+    transform: none;
+  }
+  12% {
+    opacity: 1;
+  }
+  25% {
+    transform: translate(calc(var(--dx) * 0.25), calc(var(--dy) * 0.25 - 13%));
+  }
+  50% {
+    transform: translate(calc(var(--dx) * 0.5), calc(var(--dy) * 0.5 - 18%));
+  }
+  75% {
+    transform: translate(calc(var(--dx) * 0.75), calc(var(--dy) * 0.75 - 13%));
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy));
+  }
+}
+@keyframes attack-weave {
+  0% {
+    opacity: 0;
+    transform: none;
+  }
+  12% {
+    opacity: 1;
+  }
+  25% {
+    transform: translate(calc(var(--dx) * 0.25), calc(var(--dy) * 0.25 + var(--sway)));
+  }
+  50% {
+    transform: translate(calc(var(--dx) * 0.5), calc(var(--dy) * 0.5));
+  }
+  75% {
+    transform: translate(calc(var(--dx) * 0.75), calc(var(--dy) * 0.75 - var(--sway)));
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy));
+  }
+}
+@keyframes attack-strike {
+  0% {
+    opacity: 0;
+  }
+  15%,
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes attack-rise {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  15%,
+  70% {
+    opacity: 1;
+  }
+}
+@keyframes attack-beam {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  8%,
+  75% {
+    opacity: 1;
+  }
+}
+@keyframes attack-flicker {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  10%,
+  35%,
+  60% {
+    opacity: 1;
+  }
+  22%,
+  48% {
+    opacity: 0.25;
+  }
+  85% {
+    opacity: 0.9;
+  }
+}
+@keyframes attack-pop {
+  from {
+    scale: 0.55;
+  }
+  to {
+    scale: 1;
+  }
+}
+@keyframes attack-burst {
+  0% {
+    scale: 0.3;
+  }
+  45% {
+    scale: 1;
+  }
+  100% {
+    scale: 1.15;
+  }
+}
+@keyframes attack-grow {
+  0% {
+    scale: 1 0;
+  }
+  40% {
+    scale: 1 1.1;
+  }
+  100% {
+    scale: 1 0.7;
+  }
+}
+@keyframes attack-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes attack-extend {
+  from {
+    clip-path: inset(-300% 100% -300% -10%);
+  }
+  to {
+    clip-path: inset(-300% -10% -300% -10%);
+  }
+}
+/* El único efecto con «reducir movimiento»: un destello quieto sobre el defensor. */
+.attack-flash {
+  position: absolute;
+  left: var(--end-x);
+  top: var(--end-y);
+  width: calc(8rem * var(--attack-scale));
+  height: calc(8rem * var(--attack-scale));
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--effect-light) 0%, var(--effect-color) 35%, transparent 70%);
+  animation: attack-flash 300ms ease-out both;
+}
+@keyframes attack-flash {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  35% {
+    opacity: 0.9;
+  }
+}
+
 /* Animaciones comunes. Las usan los componentes con las clases `animate-*` de más abajo. */
 @keyframes rise {
   from {
@@ -673,6 +984,9 @@ body::before {
 /* El destello es lo único que queda con «reducir movimiento»: gana a la regla global que anula las animaciones. */
 @media (prefers-reduced-motion: reduce) {
   .battle-flash {
+    animation-duration: 300ms !important;
+  }
+  .attack-flash {
     animation-duration: 300ms !important;
   }
 }
