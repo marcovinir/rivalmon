@@ -39,7 +39,7 @@ Se mantiene: códigos de 6 dígitos, `Mailer` (Resend, consola, memoria), hash c
 - **Login:** el enlace «¿Olvidaste tu contraseña?» lleva a `/olvide` (correo y «Enviar código»). Siempre sigue a `/restablecer` con «Si existe una cuenta con ese correo, te enviamos un código.». Allí se piden el código y la contraseña nueva. Al terminar, vuelve al login con «Contraseña cambiada. Inicia sesión con la nueva.».
 - **Restablecer verifica el correo:** recibir el código ya demuestra que es tuyo.
 - **Invitados:** no tienen correo y no cambia nada para ellos.
-- **Cuentas borradas** (`borrada_…`): no reciben códigos ni pueden restablecer.
+- **Cuentas borradas** (`borrada_…`): su correo pasa a `borrada-<id>@invalid`, así que nunca coinciden con uno real; una prueba lo asegura.
 - **Correos:** en español, sin imágenes ni enlaces, solo el código, como en la etapa 7.
 - **Con el interruptor apagado:** sin enlace «olvidé», sin fila de correo y las rutas nuevas responden 404. Todo queda como hoy.
 
@@ -57,7 +57,7 @@ Se mantiene: códigos de 6 dígitos, `Mailer` (Resend, consola, memoria), hash c
 | `POST /auth/password/forgot` `{ email }` | público | `202` siempre, sin delatar si existe |
 | `POST /auth/password/reset` `{ email, code, password }` | público | `204`; `400 INVALID_CODE`; revoca los tokens de renovación |
 
-- **El estado viaja con el perfil:** `GET /users/me` añade `emailVerified: boolean`. Así el futuro matchmaking solo tendrá que leerlo.
+- **El estado viaja con el usuario:** el `user` de `GET /auth/me` y del login (`toUserDto`) añade `emailVerified: boolean`. Así el futuro matchmaking solo tendrá que leerlo.
 - **Límites:** los de la etapa 7, §4.7. `verification/send` cuenta como envío, con clave el usuario y la IP.
 - **Configuración:** `EMAIL_CODES=on|off`, por defecto `off`, más `MAIL_PROVIDER`, `RESEND_API_KEY`, `MAIL_FROM` y `ALLOW_MEMORY_MAIL`, con las reglas de producción de la etapa 7, §4.9. Se cambia el nombre del interruptor porque ya no verifica para entrar.
 - **Errores en `shared`:** `INVALID_CODE` (400) y `EMAIL_SEND_FAILED` (502).
