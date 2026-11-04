@@ -41,13 +41,13 @@ Calcula media hora de trabajo más la espera de los registros DNS, que va de uno
 
 1. En Resend abre **Domains** → **Add Domain** y escribe `mail.marcovinir.dev`.
 2. Elige la región más cercana que ofrezca, por ejemplo N. Virginia o São Paulo.
-3. Resend muestra los **registros DNS** que hay que crear:
-   - **SPF**, la autenticación del remitente: un registro `TXT` y uno `MX`.
-   - **DKIM**, la firma de los mensajes: un registro `TXT`.
+3. Resend muestra los **registros DNS** que hay que crear (así salieron para `mail.marcovinir.dev` el 2026-11-03):
+   - **DKIM**, la firma de los mensajes: un `TXT` con nombre `resend._domainkey.mail` y un valor largo que empieza por `p=`. Cópialo con el botón de copiar de Resend: en pantalla sale recortado.
+   - **SPF**, la autorización para enviar: dos `CNAME`, `rsend.mail` → `rsend.forge.rmta.net` y `send.mail` → `send.forge.rmta.net`.
 
-   Añade **exactamente los que Resend te muestra en su pestaña *Records***.
-4. En el panel de DNS de tu dominio, crea cada registro con el mismo tipo, nombre y valor. Si tu panel ya añade el dominio al final del nombre, escribe solo la parte de la izquierda (por ejemplo `resend._domainkey.mail`). El `MX` lleva además la prioridad que indica Resend.
-5. **Recomendado, DMARC:** crea un registro `TXT` con nombre `_dmarc` y valor `v=DMARC1; p=none;`, que vigila sin rechazar nada.
+   Añade **exactamente los que Resend te muestra en su pestaña *Records***: puede cambiar el formato con el tiempo. Si tu DNS es Cloudflare, los `CNAME` van en **DNS only** (nube gris).
+4. En el panel de DNS de tu dominio, crea cada registro con el mismo tipo, nombre y valor. Si tu panel ya añade el dominio al final del nombre, escribe solo la parte de la izquierda (por ejemplo `resend._domainkey.mail`).
+5. **Recomendado, DMARC:** crea el registro `TXT` que propone Resend, con nombre `_dmarc` y valor `v=DMARC1; p=none;`: vigila sin rechazar nada.
 6. De vuelta en Resend pulsa **Verify DNS Records**. El estado pasa de *Pending* a **Verified**; puede tardar de minutos a unas horas. No sigas hasta ver *Verified*.
 
 ## 3. Crear la clave de API
