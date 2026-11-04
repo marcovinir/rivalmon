@@ -3,6 +3,7 @@ import type {
   BattleAction,
   BattleNote,
   BattleSwitch,
+  BattleView,
   AuctionStateView,
   ErrorCode,
   GameEndedPayload,
@@ -102,6 +103,9 @@ export interface BattleLogEntry {
   round: number;
   turn: number;
   actions: BattleAction[];
+  /** Vista previa local: nunca se envía ni contiene datos privados adicionales del rival. */
+  before: BattleView | null;
+  switches: BattleSwitch[];
   names: Record<Seat, string>;
   /** Quiénes entraron a pelear en este turno. */
   entered: string[];
@@ -196,6 +200,8 @@ export function applyServerEvent(view: GameView, event: ServerEvent, receivedAt:
         opponentGraceEndsAt: state.opponentGraceEndsAt,
         silhouette: state.silhouette ? silhouetteFrom(state.silhouette, view.silhouette) : null,
         auction: state.auction ?? null,
+        battleLog: view.code === state.code ? view.battleLog : [],
+        lastRoundEnd: view.code === state.code ? view.lastRoundEnd : null,
         ended: null,
         clockOffset: clockOffset(state.serverNow, receivedAt),
         lastError: null,
@@ -350,10 +356,12 @@ export function applyServerEvent(view: GameView, event: ServerEvent, receivedAt:
 
     case "battle-turn": {
       const { round, turn, actions, switches = [], roundNotes = [], entryNotes = [], endNotes = [] } = event.payload;
+      const last = view.battleLog.at(-1);
+      if (last && (round < last.round || (round === last.round && turn <= last.turn))) return view;
       const names = fightingNames(view, switches);
       const battle = view.auction?.battle;
       const abilityNames = Object.fromEntries([...(battle?.myTeam ?? []), ...(battle?.rivalTeam ?? [])].flatMap((one) => (one.ability ? [[one.ability.id, one.ability.name]] : [])));
-      return { ...view, battleLog: [...view.battleLog, { round, turn, actions, names, entered: switches.map((one) => names[one.seat]), roundNotes, roundNames: fightingNames(view, []), entryNotes, endNotes, abilityNames }].slice(-BATTLE_LOG_MAX) };
+      return { ...view, battleLog: [...view.battleLog, { round, turn, actions, before: battle ?? null, switches, names, entered: switches.map((one) => names[one.seat]), roundNotes, roundNames: fightingNames(view, []), entryNotes, endNotes, abilityNames }].slice(-BATTLE_LOG_MAX) };
     }
 
     case "battle-round-ended":

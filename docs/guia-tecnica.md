@@ -125,6 +125,18 @@ Al entrar se llega al **menú principal** («¿A qué jugamos?»), con una tarje
 
 Al terminar la puja, los 12 Pokémon aparecen en orden de compra: el primero al empezar y otro cada **1,5 s**, durante **18 s** en total. El sonido de cada silueta trampa coincide con su aparición. Si los dos pulsan **«Listo»**, se pasa a la alineación antes de que venza el plazo. Al recargar se conserva la revelación, su plazo y la confirmación de cada jugador; el cliente calcula cuántos Pokémon mostrar a partir del plazo del servidor.
 
+## Subasta Pokémon: presentación del combate
+
+El resultado de cada turno se presenta en orden: notas iniciales, cambios, efectos de entrada, acciones y sus efectos, y daño de estado al final. Un texto breve sobre el escenario explica qué pasa; los estados y las subidas o bajadas de stats se señalan sobre el Pokémon afectado. Un fallo, bloqueo, inmunidad o movimiento sin daño no provoca una embestida ficticia.
+
+El `battle-turn` se publica antes de los `room-state` con sus resultados finales, también para quien elige segundo. El cliente guarda una instantánea local de la vista anterior y dibuja cuadros intermedios: los PS bajan en el impacto, no al recibir el estado final; las curaciones, el retroceso y los residuales tienen su paso. El estado del servidor sigue siendo la autoridad. Al recargar se recupera directamente su vista actual, sin repetir el último golpe, y el registro conservado tampoco inicia una animación al montar la pantalla.
+
+`shared/src/battle-playback.ts` define los pasos y tiempos que comparten el cliente y el temporizador del motor. Un ataque ocupa 250 ms de preparación y 950 ms de impacto; una acción sin ataque, 1200 ms; un cambio, 700 ms; cada nota, 900 ms, y el cierre, 500 ms. El servidor avanza por su propio temporizador aunque un navegador se cierre; no espera confirmaciones de la animación. El K.O. y la pausa entre asaltos conservan su funcionamiento.
+
+Con **reducir movimiento** se usan PNG en lugar de GIF, se quita la embestida y quedan textos y destellos de 300 ms. La secuencia conserva sus tiempos para poder leerla. Los textos visuales de los pasos no forman otra región viva: el lector de pantalla conserva el resumen del turno. Las decisiones siguen siendo secretas y no se añaden PP ni movimientos no revelados del rival a su vista.
+
+La E2E de partida completa sigue enfrentando dos navegadores al motor real. `e2e/tests/battle-presentation.spec.ts` comprueba además resultados públicos deterministas sobre el cliente y CSS de producción: PS antes y después del impacto, cambios, estados/stats, fallos, bloqueos y recarga. Se miden 360 × 760, 375 px y escritorio, con movimiento normal/reducido, sprites reales cuando se usa `E2E_REAL_IMAGES=1`, y contraste de los cuatro temas/modos durante la elección.
+
 ## «¿Quién es ese Pokémon?»
 
 - **Opciones:** 5, **10** o 15 rondas, y las generaciones de las que salen los Pokémon (de la 1.ª, Kanto, a la 9.ª, Paldea; por defecto solo Kanto; al menos una).

@@ -61,7 +61,7 @@ export interface TurnExtras {
   abilityNames?: Record<string, string>;
 }
 
-function noteLine(note: BattleNote, names: Names, abilityNames: Record<string, string>): string {
+export function noteLine(note: BattleNote, names: Names, abilityNames: Record<string, string>): string {
   if (note.kind === "failed") return "Pero no tuvo efecto.";
   const name = names[note.seat];
   switch (note.kind) {
@@ -86,7 +86,7 @@ function noteLine(note: BattleNote, names: Names, abilityNames: Record<string, s
   }
 }
 
-function actionLine(action: BattleAction, names: Names): string {
+export function actionLine(action: BattleAction, names: Names): string {
   const name = names[action.actor];
   if (action.blocked) return `${name} está ${action.blocked === "sleep" ? "dormido" : "paralizado"} y no puede moverse.`;
   const start = `${name} usó ${action.moveName}`;
@@ -99,10 +99,15 @@ function actionLine(action: BattleAction, names: Names): string {
 
 const enteredLine = (name: string): string => `¡Adelante, ${name}!`;
 
+/** El despertar permite actuar; las demás notas son consecuencias de esa acción. */
+function actionsWithNotes(actions: BattleAction[], describe: (action: BattleAction, index: number) => string, notes: (list: BattleNote[]) => string[]): string[] {
+  return actions.flatMap((action, index) => [...notes(action.notes.filter((note) => note.kind === "woke")), describe(action, index), ...notes(action.notes.filter((note) => note.kind !== "woke"))]);
+}
+
 /** Lo ocurrido en un turno, una línea por cosa: es el registro visible. */
 export function turnLines(actions: BattleAction[], names: Names, { entered = [], roundNotes = [], roundNames = names, entryNotes = [], endNotes = [], abilityNames = {} }: TurnExtras = {}): string[] {
   const notes = (list: BattleNote[]) => list.map((note) => noteLine(note, names, abilityNames));
-  return [...roundNotes.map((note) => noteLine(note, roundNames, abilityNames)), ...entered.map(enteredLine), ...notes(entryNotes), ...actions.flatMap((action) => [actionLine(action, names), ...notes(action.notes)]), ...notes(endNotes)];
+  return [...roundNotes.map((note) => noteLine(note, roundNames, abilityNames)), ...entered.map(enteredLine), ...notes(entryNotes), ...actionsWithNotes(actions, (action) => actionLine(action, names), notes), ...notes(endNotes)];
 }
 
 /** El mismo turno en una sola frase corta: es lo que oye quien usa lector de pantalla, para no saturarlo. */
@@ -116,7 +121,7 @@ export function turnSummary(actions: BattleAction[], names: Names, { entered = [
     if (action.damage > 0) return `${name}, ${action.damage} de daño.`;
     return action.effectiveness === 0 ? `${name}, no afecta.` : `${name} usó ${action.moveName}.`;
   });
-  const hitsWithNotes = actions.flatMap((action, index) => [hits[index]!, ...notes(action.notes)]);
+  const hitsWithNotes = actionsWithNotes(actions, (_, index) => hits[index]!, notes);
   return [...roundNotes.map((note) => noteLine(note, roundNames, abilityNames)), ...entered.map(enteredLine), ...notes(entryNotes), ...hitsWithNotes, ...notes(endNotes)].join(" ");
 }
 

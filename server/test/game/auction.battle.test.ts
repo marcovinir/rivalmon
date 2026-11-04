@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import type { BattleMove, Seat } from "@pokemon-minigames/shared";
+import { battleTurnDurationMs, type BattleMove, type Seat } from "@pokemon-minigames/shared";
 import { describe, expect, it } from "vitest";
 import { PokemonCatalog } from "../../src/catalog/pokemon-catalog.js";
 import type { CatalogSnapshot } from "../../src/catalog/snapshot.js";
@@ -36,11 +36,18 @@ const battle = (h: AuctionHarness, seat: Seat) => h.view(seat).auction!.battle!;
 /** Un ataque que tenga; fuera de elegir no hay, y cualquier nombre sirve para ver que se rechaza. */
 const moveOf = (h: AuctionHarness, seat: Seat) => battle(h, seat).moves.find((one) => one.category !== "status" && one.pp > 0)?.move ?? battle(h, seat).moves.find((one) => one.pp > 0)?.move ?? "tackle";
 
+/** Avanza hasta el cierre real, sin consumir parte del plazo siguiente. */
+function finishAnimation(h: AuctionHarness): void {
+  const pending = h.pending.find((one) => one.timer.kind === "battle" && one.timer.step === h.state.battle!.step);
+  if (!pending) throw new Error("Falta el temporizador de la animación");
+  h.advance(pending.at - h.now);
+}
+
 /** Elige los dos y deja pasar la animación. */
 function playTurn(h: AuctionHarness, a?: BattleMove, b?: BattleMove): void {
   h.dispatch({ type: "CHOOSE_MOVE", seat: 1, move: a ?? moveOf(h, 1) });
   h.dispatch({ type: "CHOOSE_MOVE", seat: 2, move: b ?? moveOf(h, 2) });
-  h.advance(3000);
+  finishAnimation(h);
 }
 
 function toPause(seed = 1): AuctionHarness {
@@ -54,6 +61,32 @@ function toPause(seed = 1): AuctionHarness {
 const loserOf = (h: AuctionHarness): Seat => (h.state.battle!.titular[1] === null ? 1 : 2);
 
 describe("revelación y alineación", () => {
+  it("la animación incluye todos los pasos y no abre el siguiente turno antes del cierre", () => {
+    const h = toBattle();
+    h.state.battle!.entryNotes = [{ kind: "ability", seat: 1, ability: "intimidate" }, { kind: "stat", seat: 2, stat: "attack", change: -1 }, { kind: "ability", seat: 2, ability: "intimidate" }, { kind: "stat", seat: 1, stat: "attack", change: -1 }];
+    h.dispatch({ type: "CHOOSE_MOVE", seat: 1, move: moveOf(h, 1) });
+    h.dispatch({ type: "CHOOSE_MOVE", seat: 2, move: moveOf(h, 2) });
+    const duration = battleTurnDurationMs(h.payloads("battle-turn").at(-1)!);
+    expect(duration).toBeGreaterThan(3000);
+    h.advance(duration - 1);
+    expect(h.state.battle!.choosing).toBe(false);
+    expect(h.state.phase).toBe("battle");
+    h.advance(1);
+    expect(h.state.battle!.choosing || h.state.phase === "battle_pause").toBe(true);
+  });
+
+  it("desconectarse durante los efectos no detiene el cierre ni reinicia la gracia", () => {
+    const h = toBattle();
+    h.dispatch({ type: "CHOOSE_MOVE", seat: 1, move: moveOf(h, 1) });
+    h.dispatch({ type: "CHOOSE_MOVE", seat: 2, move: moveOf(h, 2) });
+    const duration = battleTurnDurationMs(h.payloads("battle-turn").at(-1)!);
+    h.dispatch({ type: "PLAYER_DISCONNECTED", seat: 1 });
+    h.advance(duration);
+    expect(h.state.battle!.choosing || h.state.phase === "battle_pause").toBe(true);
+    h.advance(30_000 - duration);
+    expect(h.state.outcome).toEqual({ winnerSeat: 2, reason: "disconnect" });
+  });
+
   it("tras la subasta se ve la revelación, ya observable, y dura 18 s", () => {
     const h = toReveal();
     expect(h.state.phase).toBe("reveal");
@@ -131,6 +164,14 @@ describe("revelación y alineación", () => {
 });
 
 describe("turnos", () => {
+  it("publica el turno antes de cualquier room-state con sus PS finales, también a quien elige segundo", () => {
+    const h = toBattle();
+    h.dispatch({ type: "CHOOSE_MOVE", seat: 1, move: moveOf(h, 1) });
+    const effects = h.dispatch({ type: "CHOOSE_MOVE", seat: 2, move: moveOf(h, 2) });
+    const firstView = effects.find((effect) => effect.kind === "send_state" || (effect.kind === "emit" && effect.event.name === "battle-turn"));
+    expect(firstView).toMatchObject({ kind: "emit", event: { name: "battle-turn" } });
+  });
+
   it("se elige sin reloj; si el rival ya eligió no se dice, y se resuelve en cuanto eligen los dos", () => {
     const h = toBattle();
     expect(battle(h, 1)).toMatchObject({ deadline: null, choosing: true, warningUntil: null });
@@ -156,7 +197,7 @@ describe("turnos", () => {
     expect(battle(h, 1).choosing).toBe(false);
     h.dispatch({ type: "CHOOSE_MOVE", seat: 1, move: moveOf(h, 1) });
     expect(h.errorCodes(1)).toEqual(["WRONG_PHASE"]);
-    h.advance(3000);
+    finishAnimation(h);
     expect(battle(h, 1)).toMatchObject({ turn: 2, confirmed: false, choosing: true });
   });
 
@@ -172,7 +213,7 @@ describe("turnos", () => {
     h.dispatch({ type: "CHOOSE_MOVE", seat: 2, move: moveOf(h, 2) });
     expect(h.payloads("battle-turn")).toHaveLength(1);
     // El temporizador del turno 1 vence durante la animación: no cierra nada.
-    h.advance(3000);
+    finishAnimation(h);
     expect(battle(h, 1).turn).toBe(2);
     h.advance(74_999);
     expect(h.payloads("battle-turn")).toHaveLength(1);
@@ -275,7 +316,7 @@ describe("turnos", () => {
     h.dispatch({ type: "CHOOSE_MOVE", seat: 2, move: moveOf(h, 2) });
     for (const seat of [1, 2] as const) expect(h.state.battle!.fighters[seat].find((one) => one.pokemon.id === h.state.battle!.titular[seat])!.hp).toBe(0);
     expect(h.payloads("battle-round-ended")).toEqual([{ round: 1, loser: 1, atLimit: false }]);
-    h.advance(3000);
+    finishAnimation(h);
     expect(h.state.phase).toBe("battle_pause");
     h.advance(15_000);
     expect(h.state.phase).toBe("battle");
@@ -286,11 +327,11 @@ describe("turnos", () => {
     for (let turn = 0; turn < 25 && h.payloads("battle-round-ended").length === 0; turn++) {
       h.dispatch({ type: "CHOOSE_MOVE", seat: 1, move: moveOf(h, 1) });
       h.dispatch({ type: "CHOOSE_MOVE", seat: 2, move: moveOf(h, 2) });
-      if (h.payloads("battle-round-ended").length === 0) h.advance(3000);
+      if (h.payloads("battle-round-ended").length === 0) finishAnimation(h);
     }
     expect(h.payloads("battle-round-ended")[0]).toMatchObject({ round: 1, atLimit: false });
     expect(h.state.phase).toBe("battle");
-    h.advance(3000);
+    finishAnimation(h);
     expect(h.state.phase).toBe("battle_pause");
   });
 
@@ -654,7 +695,7 @@ describe("sin reloj para elegir", () => {
     h.advance(1);
     const [turn] = h.payloads("battle-turn");
     expect(turn!.actions.find((one) => one.actor === 2)!.move).not.toBe("recuperar");
-    h.advance(3000);
+    finishAnimation(h);
     expect(battle(h, 1)).toMatchObject({ turn: 2, warningUntil: null, choosing: true });
   });
 
@@ -762,7 +803,7 @@ describe("cambiar de Pokémon", () => {
     const [turn] = h.payloads("battle-turn");
     expect(turn!.actions).toEqual([]);
     expect(turn!.switches).toHaveLength(2);
-    h.advance(3000);
+    finishAnimation(h);
     expect(battle(h, 1)).toMatchObject({ turn: 2, choosing: true, mySwitch: null });
   });
 
@@ -801,7 +842,7 @@ describe("cambiar de Pokémon", () => {
     for (let turn = 0; turn < 20; turn++) {
       h.dispatch({ type: "CHOOSE_SWITCH", seat: 1, pokemonId: reserve(h, 1) });
       h.dispatch({ type: "CHOOSE_SWITCH", seat: 2, pokemonId: reserve(h, 2) });
-      h.advance(3000);
+      finishAnimation(h);
     }
     expect(h.payloads("battle-round-ended")[0]).toMatchObject({ round: 1, atLimit: true });
     expect(h.state.phase).toBe("battle_pause");
