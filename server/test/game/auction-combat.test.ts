@@ -84,6 +84,17 @@ describe("PP", () => {
     expect(action!.notes).toContainEqual({ kind: "recoil", seat: 1, damage: Math.floor(a.maxHp / 4) });
   });
 
+  it("cada acción dice el tipo del movimiento, para su efecto; Forcejeo no tiene", () => {
+    const [fire] = resolveTurn(sides(mon(1, ["water"], [FIRE]), normal(2)), { 1: FIRE, 2: null }, calm);
+    expect(fire!.moveType).toBe("fire");
+    const [wave] = resolveTurn(sides(normal(), normal(2)), { 1: THUNDER_WAVE, 2: null }, calm);
+    expect(wave!.moveType).toBe("electric");
+    const a = normal();
+    a.moves[0]!.pp = 0;
+    const [struggle] = resolveTurn(sides(a, normal(2)), { 1: STRUGGLE, 2: null }, calm);
+    expect(struggle!.moveType).toBeNull();
+  });
+
   it("el mejor movimiento nunca es uno sin PP; sin ninguno, Forcejeo", () => {
     const a = mon(1, ["normal"], [HIT, WEAK]);
     a.moves[0]!.pp = 0;
