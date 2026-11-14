@@ -67,7 +67,7 @@ export function buildBattleFrames(before: BattleView, entry: BattleLogEntry, myS
       case "note": {
         const names = step.scope === "round" ? entry.roundNames : entry.names;
         text = noteLine(step.note, names, entry.abilityNames);
-        // El room-state inicial del asalto ya incluía sus habilidades de entrada.
+        // El room-state inicial del combate ya incluía sus habilidades de entrada.
         if (step.scope !== "round") applyNote(step.note);
         if (step.lastInAction && step.action) checkpoint(step.action);
         const note = step.note;

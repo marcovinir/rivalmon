@@ -20,7 +20,10 @@ export const battleView = (over: Partial<BattleView> = {}): BattleView => ({
   myLineup: null,
   myMove: null,
   mySwitch: null,
-  myPause: null,
+  mustReplace: false,
+  rivalReplacing: false,
+  myReplacement: null,
+  calmTurns: 0,
   myTeam: MY_TEAM,
   rivalTeam: RIVAL_TEAM,
   myTitular: 1,
@@ -34,7 +37,7 @@ export const battleView = (over: Partial<BattleView> = {}): BattleView => ({
 });
 
 /** El `room-state` de un combate, visto desde el asiento 1. */
-export const battleState = (phase: "lineup" | "battle" | "battle_pause", over: Partial<BattleView> = {}, mySeat: Seat = 1) =>
+export const battleState = (phase: "lineup" | "battle", over: Partial<BattleView> = {}, mySeat: Seat = 1) =>
   event.roomState({
     phase,
     mySeat,

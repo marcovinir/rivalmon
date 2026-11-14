@@ -131,7 +131,9 @@ El resultado de cada turno se presenta en orden: notas iniciales, cambios, efect
 
 El `battle-turn` se publica antes de los `room-state` con sus resultados finales, también para quien elige segundo. El cliente guarda una instantánea local de la vista anterior y dibuja cuadros intermedios: los PS bajan en el impacto, no al recibir el estado final; las curaciones, el retroceso y los residuales tienen su paso. El estado del servidor sigue siendo la autoridad. Al recargar se recupera directamente su vista actual, sin repetir el último golpe, y el registro conservado tampoco inicia una animación al montar la pantalla.
 
-`shared/src/battle-playback.ts` define los pasos y tiempos que comparten el cliente y el temporizador del motor. Un ataque ocupa 250 ms de preparación y 950 ms de impacto; una acción sin ataque, 1200 ms; un cambio, 700 ms; cada nota, 900 ms, y el cierre, 500 ms. El servidor avanza por su propio temporizador aunque un navegador se cierre; no espera confirmaciones de la animación. El K.O. y la pausa entre asaltos conservan su funcionamiento.
+`shared/src/battle-playback.ts` define los pasos y tiempos que comparten el cliente y el temporizador del motor. Un ataque ocupa 250 ms de preparación y 950 ms de impacto; una acción sin ataque, 1200 ms; un cambio, 700 ms; cada nota, 900 ms, y el cierre, 500 ms. El servidor avanza por su propio temporizador aunque un navegador se cierre; no espera confirmaciones de la animación.
+
+**Combate seguido (#57).** No hay rótulo de K.O. ni pausa: el sprite del Pokémon debilitado baja y se desvanece, y la franja dice «¡X se debilitó!». Solo elige quien lo perdió: en la misma pantalla sus botones de ataque se cambian por **«¿Quién sale ahora?»**, con sus Pokémon vivos, y el rival ve «X está eligiendo a su siguiente Pokémon…». No hay reloj, solo el aviso «¿Sigues ahí?»; si se agota, sale el primero vivo de su orden. Si caen los dos a la vez, eligen los dos, ninguno ve la elección del otro y entran juntos. El que sigue en pie conserva sus niveles de stats. A los **20 turnos seguidos sin caídas** cae quien tenga menos porcentaje de PS; el contador dice «Turno N» y, en los últimos 5 turnos antes del límite, «· Límite N/20». La partida acaba cuando alguien se queda sin Pokémon; si les pasa a los dos a la vez, pierde el más lento de los dos últimos. Por dentro, `round` cuenta los tramos entre caídas: la entrada de un reemplazo llega como un `battle-turn` sin acciones en un tramo nuevo, y `turn` cuenta toda la partida.
 
 Con **reducir movimiento** se usan PNG en lugar de GIF, se quita la embestida y quedan textos y destellos de 300 ms. La secuencia conserva sus tiempos para poder leerla. Los textos visuales de los pasos no forman otra región viva: el lector de pantalla conserva el resumen del turno. Las decisiones siguen siendo secretas y no se añaden PP ni movimientos no revelados del rival a su vista.
 
@@ -257,8 +259,7 @@ Se conecta a `http://localhost:3000` con `auth: { token: <accessToken> }`. Un to
 | `auction-ready` | Subasta: ya vi la revelación; si confirman los dos, se salta |
 | `auction-lineup` | Subasta: `{ order }`: titular y orden |
 | `auction-move` | Subasta: `{ move }`: el identificador de uno de sus 4 movimientos con PP, o `forcejeo` si no le quedan. No tiene reloj: a los 60 s sale el aviso «¿Sigues ahí?» |
-| `auction-switch` | Subasta: `{ pokemonId }`: cambiar de Pokémon; gasta el turno y el cambio va antes que los ataques |
-| `auction-pause` | Subasta: `{ choice: { titular } }`: titular entre asaltos |
+| `auction-switch` | Subasta: `{ pokemonId }`: cambiar de Pokémon; gasta el turno y el cambio va antes que los ataques. Si se te debilitó el titular, es elegir al siguiente: un Pokémon tuyo y vivo, sin gastar turno |
 | `rematch-request` | — (pedir la revancha o aceptar la del rival) |
 | `rematch-cancel` | — (cancelar la propia o rechazar la del rival) |
 
@@ -278,6 +279,6 @@ Se conecta a `http://localhost:3000` con `auth: { token: <accessToken> }`. Un to
 | `auction-sale` | Subasta: se cerró un lote: `{ lot, winner, paid }`, sin decir qué Pokémon era |
 | `auction-reveal` | Subasta: los 12 Pokémon reales, con quién los compró y si eran trampa |
 | `battle-turn` | Subasta: se resolvió un turno: `{ round, turn, actions, switches, roundNotes, entryNotes, endNotes }`: las notas cuentan estados, stats y habilidades |
-| `battle-round-ended` | Subasta: cayó un Pokémon: `{ round, loser, atLimit }` |
+| `battle-fainted` | Subasta: cayeron estos titulares: `{ fallen, atLimit }`; `atLimit` si fue por los 20 turnos seguidos sin caídas |
 | `rematch-room` | Los dos aceptaron: `{ code }` de la sala nueva (que trae `rematch: true` en su `room-state`) |
 | `error` | `{ code, message }` |

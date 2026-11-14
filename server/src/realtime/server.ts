@@ -27,7 +27,6 @@ const bidSchema = z.object({ step: z.custom<BidStep | null>((value) => value ===
 const passSchema = z.object({ turnId: z.number().int() });
 const lineupSchema = z.strictObject({ order: z.array(z.number().int()).max(6) });
 const moveSchema = z.strictObject({ move: z.string().min(1).max(40) });
-const pauseSchema = z.strictObject({ choice: z.strictObject({ titular: z.number().int() }) });
 const switchSchema = z.strictObject({ pokemonId: z.number().int() });
 const stillHereSchema = z.strictObject({ turnId: z.number().int() });
 
@@ -196,14 +195,6 @@ function registerHandlers(socket: GameSocket, deps: RealtimeDeps): void {
     handle(switchSchema, ({ pokemonId }) => {
       const { room, seat } = requireBinding();
       room.dispatch({ type: "CHOOSE_SWITCH", seat, pokemonId });
-    }),
-  );
-
-  socket.on(
-    "auction-pause",
-    handle(pauseSchema, ({ choice }) => {
-      const { room, seat } = requireBinding();
-      room.dispatch({ type: "PAUSE_CONFIRM", seat, choice });
     }),
   );
 

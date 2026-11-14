@@ -36,7 +36,7 @@ export function battleTurnSteps(turn: BattleTurnPresentation): BattleStep[] {
     after.forEach((note, index) => steps.push({ kind: "note", note, scope: "action", action, lastInAction: index === after.length - 1, durationMs: 900 }));
   }
   notes(turn.endNotes ?? [], "end");
-  // El resultado final (y el K.O., si corresponde) queda visible antes de que avance el servidor.
+  // El resultado final (y el debilitado, si lo hay) queda visible antes de que avance el servidor.
   steps.push({ kind: "complete", durationMs: 500 });
   return steps;
 }

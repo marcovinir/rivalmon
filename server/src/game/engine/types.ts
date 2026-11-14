@@ -1,4 +1,4 @@
-import type { BattleMove, BidStep, PauseChoice } from "@pokemon-minigames/shared";
+import type { BattleMove, BidStep } from "@pokemon-minigames/shared";
 import type {
   ErrorCode,
   GameEndReason,
@@ -107,7 +107,6 @@ export type GameEvent =
   | { type: "CHOOSE_LINEUP"; seat: Seat; order: number[] }
   | { type: "CHOOSE_MOVE"; seat: Seat; move: BattleMove }
   | { type: "CHOOSE_SWITCH"; seat: Seat; pokemonId: number }
-  | { type: "PAUSE_CONFIRM"; seat: Seat; choice: PauseChoice }
   | { type: "LEAVE"; seat: Seat }
   | { type: "TIMER"; timer: TimerId };
 

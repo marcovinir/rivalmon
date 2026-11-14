@@ -143,17 +143,12 @@ describe("el combate", () => {
     expect(hitNode.parentElement).toHaveClass("battle-enter");
   });
 
-  it("dice el turno y el límite: el asalto se cierra en el 20", () => {
-    renderRoom([battleState("battle", { round: 2, turn: 7 })]);
-    expect(screen.getByText("Asalto 2 · Turno 7/20")).toBeInTheDocument();
-  });
-
   it("salir del combate no revienta aunque el navegador devuelva algo al desplazar", () => {
     vi.stubGlobal("scrollTo", () => Promise.resolve());
     const services = fakeServices();
     renderRoom([battleState("battle")], services);
-    serverSends(services, battleState("battle_pause", { moves: [] }));
-    expect(screen.getByRole("heading", { name: "Pausa entre asaltos" })).toBeInTheDocument();
+    serverSends(services, battleState("lineup", { moves: [] }));
+    expect(screen.getByRole("heading", { name: "Elige tu alineación" })).toBeInTheDocument();
   });
 
   it("el fondo es el escenario del combate", () => {
@@ -342,7 +337,7 @@ describe("el combate", () => {
     const log = container.querySelector("[data-battle-log]")!;
     expect(log).toHaveAttribute("aria-hidden", "true");
     expect(within(log as HTMLElement).getByText("Uno usó Lanzallamas: 42 de daño. ¡Es muy eficaz!")).toBeInTheDocument();
-    expect(screen.getByRole("log", { name: "Anuncios de la partida" })).toHaveTextContent(/^Asalto 1, turno 1: Uno, 42 de daño\.$/);
+    expect(screen.getByRole("log", { name: "Anuncios de la partida" })).toHaveTextContent(/^Turno 1: Uno, 42 de daño\.$/);
   });
 
   it("al golpear, embiste el atacante y se tiñe el defensor; con otro turno no quedan teñidos", () => {
@@ -361,28 +356,27 @@ describe("el combate", () => {
     expect(screen.getByRole("img", { name: "Cuatro" }).parentElement).not.toHaveClass("battle-hit");
   });
 
-  it("al empezar otro asalto no se repite el último golpe", () => {
+  it("tras entrar un reemplazo no se repite el último golpe", () => {
     const services = fakeServices();
     renderRoom([battleState("battle")], services);
     serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 1, actions: [hit] } });
-    serverSends(services, battleState("battle_pause", { moves: [] }));
-    serverSends(services, battleState("battle", { round: 2, turn: 1 }));
+    serverSends(services, battleState("battle", { round: 2, turn: 2 }));
     expect(screen.getByRole("img", { name: "Uno" }).parentElement).not.toHaveClass("battle-lunge");
     expect(screen.getByRole("img", { name: "Cuatro" }).parentElement).not.toHaveClass("battle-hit");
   });
 
-  it("el lector oye cada turno aunque se repita el daño, el K.O. y el asalto nuevo", () => {
+  it("el lector oye cada turno aunque se repita el daño, quién se debilitó y quién entra", () => {
     const services = fakeServices();
     renderRoom([battleState("battle")], services);
     const log = screen.getByRole("log", { name: "Anuncios de la partida" });
     serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 1, actions: [hit] } });
     serverSends(services, battleState("battle", { turn: 2 }));
     serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 2, actions: [hit] } });
-    expect(log).toHaveTextContent("Asalto 1, turno 2: Uno, 42 de daño.");
-    serverSends(services, { name: "battle-round-ended", payload: { round: 1, loser: 2, atLimit: true } });
-    expect(log).toHaveTextContent("Cuatro cayó por el límite de turnos.");
-    serverSends(services, battleState("battle", { round: 2, turn: 1 }));
-    expect(log).toHaveTextContent(/^Asalto 2: Uno contra Cuatro\.$/);
+    expect(log).toHaveTextContent("Turno 2: Uno, 42 de daño.");
+    serverSends(services, { name: "battle-fainted", payload: { fallen: [2], atLimit: true } });
+    expect(log).toHaveTextContent("Cuatro se debilitó por el límite de turnos.");
+    serverSends(services, { name: "battle-turn", payload: { round: 2, turn: 2, actions: [], switches: [{ seat: 2, pokemonId: 5 }] } });
+    expect(log).toHaveTextContent("¡Adelante, Cinco!");
   });
 
   it("con «reducir movimiento», imagen fija", () => {
@@ -397,14 +391,6 @@ describe("el combate", () => {
     expect(screen.queryByRole("img", { name: "Sin Gif" })).toBeNull();
   });
 
-  it("el K.O. espera a que acabe el golpe", () => {
-    const services = fakeServices();
-    renderRoom([battleState("battle")], services);
-    serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 1, actions: [hit] } });
-    serverSends(services, { name: "battle-round-ended", payload: { round: 1, loser: 2, atLimit: false } });
-    expect(screen.queryByText("K.O.")).toBeNull();
-  });
-
   it("con «reducir movimiento», solo un destello", () => {
     vi.useFakeTimers();
     vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("reduce"), media: query, addEventListener() {}, removeEventListener() {} }));
@@ -415,14 +401,6 @@ describe("el combate", () => {
     expect(screen.getByRole("img", { name: "Uno" }).parentElement).not.toHaveClass("battle-lunge");
     expect(screen.getByRole("img", { name: "Cuatro" }).parentElement).not.toHaveClass("battle-hit");
     expect(screen.getByRole("img", { name: "Cuatro" }).parentElement).toHaveClass("battle-flash");
-  });
-
-  it("al caer un Pokémon sale el K.O.", () => {
-    const services = fakeServices();
-    renderRoom([battleState("battle", { choosing: false, moves: [] })], services);
-    expect(screen.queryByText("K.O.")).toBeNull();
-    serverSends(services, { name: "battle-round-ended", payload: { round: 1, loser: 2, atLimit: false } });
-    expect(screen.getByText("K.O.")).toBeInTheDocument();
   });
 
   it("si el sprite animado falla pasa al PNG clásico, y si este falla, al nombre", () => {

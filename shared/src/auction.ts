@@ -158,7 +158,7 @@ export interface BattleView {
   turn: number;
   /** El escenario, uno por combate. */
   scene: AuctionScene;
-  /** Hasta cuándo se puede decidir en la revelación, la alineación o la pausa. Elegir movimiento no tiene reloj: siempre nula. */
+  /** Hasta cuándo se puede decidir en la revelación o la alineación. Elegir movimiento no tiene reloj: siempre nula. */
   deadline: number | null;
   /** Se está eligiendo movimiento; falso mientras se anima un turno. */
   choosing: boolean;
@@ -168,24 +168,26 @@ export interface BattleView {
   warningUntil: number | null;
   /** Yo ya elegí y el rival lleva tiempo sin hacerlo. */
   rivalIdle: boolean;
-  /** Ya confirmé en este paso (revelación, alineación, movimiento o pausa). */
+  /** Ya confirmé en este paso (revelación, alineación, movimiento o reemplazo). */
   confirmed: boolean;
   /** Lo que yo decidí en este paso, para recuperarlo al recargar. Lo del rival nunca va. */
   myLineup: number[] | null;
   myMove: BattleMove | null;
   /** A quién elegí sacar este turno. */
   mySwitch: number | null;
-  myPause: PauseChoice | null;
+  /** Se me debilitó el titular y tengo que elegir al siguiente (#57). */
+  mustReplace: boolean;
+  /** El rival está eligiendo a su siguiente Pokémon. */
+  rivalReplacing: boolean;
+  /** A quién elegí para salir, para recuperarlo al recargar. */
+  myReplacement: number | null;
+  /** Turnos seguidos sin que caiga nadie: al llegar a 20 cae quien tenga menos PS. */
+  calmTurns: number;
   myTeam: BattleFighterView[];
   rivalTeam: BattleFighterView[];
   myTitular: number | null;
   rivalTitular: number | null;
   moves: BattleMoveView[];
-}
-
-/** Lo que alguien decide en la pausa: quién sale a pelear. */
-export interface PauseChoice {
-  titular: number;
 }
 
 /** Totales de la partida, para el resumen. */

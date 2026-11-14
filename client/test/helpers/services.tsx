@@ -111,7 +111,6 @@ export function fakeServices(): FakeServices {
     lineup: vi.fn(),
     move: vi.fn(),
     switchTo: vi.fn(),
-    pauseConfirm: vi.fn(),
     stillHere: vi.fn(),
     bid: vi.fn(),
     pass: vi.fn(),

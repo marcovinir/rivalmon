@@ -1,9 +1,9 @@
 import { BID_STEPS, type BaseStats, type BattleMove, type TypeName } from "@pokemon-minigames/shared";
 import type { Rng } from "../rng.js";
 import { pickOne } from "../rng.js";
-import { type Fighter, availableMoves, bestMove, bothFallenLoser, clearStages, endOfTurn, enterBattle, hpShare, moveData, newFighter, resolveTurn, roundLimitLoser } from "./combat.js";
+import { type Fighter, availableMoves, bestMove, bothFallenLoser, endOfTurn, enterBattle, hpShare, moveData, newFighter, resolveTurn, roundLimitLoser } from "./combat.js";
 import {
-  MAX_TURNS_PER_ROUND,
+  MAX_CALM_TURNS,
   STARTING_MONEY,
   TRAP_ODDS,
   TEAM_SIZE,
@@ -50,8 +50,11 @@ export interface SimulationResult {
   moneyLeft: [number, number];
   /** Partes de la subasta: lo que tarda depende de cuántas pujas hubo. */
   bidTurns: number;
+  /** Caídas: cada una cierra un tramo del combate seguido. */
   rounds: number;
+  /** Los turnos de cada tramo, hasta la caída. */
   turnsPerRound: number[];
+  /** Caídas por el límite de turnos seguidos. */
   roundsAtLimit: number;
   traps: number;
   criticals: number;
@@ -177,7 +180,7 @@ const alive = (side: Side) => side.fighters.filter((fighter) => fighter.hp > 0);
 const strongest = (fighters: Fighter[]) => [...fighters].sort((a, b) => totalOf(b) - totalOf(a))[0] ?? null;
 const totalOf = (fighter: Fighter) => (fighter.pokemon as AuctionPokemon).total;
 
-/** Lo que haría alguien razonable en la pausa: sacar a su mejor Pokémon si cayó el titular. */
+/** Lo que haría alguien razonable al caer su titular: sacar a su mejor Pokémon. */
 function prepare(side: Side): void {
   if (!side.titular || side.titular.hp <= 0) side.titular = strongest(alive(side));
 }
@@ -194,35 +197,35 @@ function runBattle(players: [Player, Player], options: SimulationOptions, rng: R
     titular: null,
   })) as [Side, Side];
   for (const side of sides) side.titular = strongest(alive(side));
+  enterBattle(sides[0].titular!, sides[1].titular!, 1);
+  enterBattle(sides[1].titular!, sides[0].titular!, 2);
 
+  // Combate seguido, como el motor (#57): el superviviente conserva sus stats y solo entra quien sustituye al caído.
+  let calm = 0;
   for (;;) {
     const [a, b] = [sides[0].titular!, sides[1].titular!];
-    let turns = 0;
-    clearStages(a);
-    clearStages(b);
-    enterBattle(a, b, 1);
-    enterBattle(b, a, 2);
-    while (a.hp > 0 && b.hp > 0 && turns < MAX_TURNS_PER_ROUND) {
-      turns++;
-      const fighters = { 1: a, 2: b };
-      const actions = resolveTurn(fighters, { 1: choose(sides[0], sides[1]), 2: choose(sides[1], sides[0]) }, rng, { criticals: options.criticals !== false });
-      endOfTurn(fighters);
-      result.criticals += actions.filter((action) => action.critical).length;
-    }
-    if (a.hp <= 0 && b.hp <= 0) {
-      // Solo uno pierde el asalto, como en el motor; el otro también queda fuera.
-      result.doubleKnockouts = (result.doubleKnockouts ?? 0) + 1;
-      if (alive(sides[0]).length === 0 && alive(sides[1]).length === 0) return bothFallenLoser({ 1: a, 2: b }, rng) === 1 ? 1 : 0;
-    }
+    calm++;
+    const fighters = { 1: a, 2: b };
+    const actions = resolveTurn(fighters, { 1: choose(sides[0], sides[1]), 2: choose(sides[1], sides[0]) }, rng, { criticals: options.criticals !== false });
+    endOfTurn(fighters);
+    result.criticals += actions.filter((action) => action.critical).length;
     if (a.hp > 0 && b.hp > 0) {
+      if (calm < MAX_CALM_TURNS) continue;
       result.roundsAtLimit++;
-      (roundLimitLoser({ 1: a, 2: b }, rng) === 1 ? a : b).hp = 0;
+      (roundLimitLoser(fighters, rng) === 1 ? a : b).hp = 0;
     }
     result.rounds++;
-    result.turnsPerRound.push(turns);
+    result.turnsPerRound.push(calm);
+    calm = 0;
+    if (a.hp <= 0 && b.hp <= 0) {
+      result.doubleKnockouts = (result.doubleKnockouts ?? 0) + 1;
+      if (alive(sides[0]).length === 0 && alive(sides[1]).length === 0) return bothFallenLoser(fighters, rng) === 1 ? 1 : 0;
+    }
     for (const side of sides) prepare(side);
     if (!sides[0].titular) return 1;
     if (!sides[1].titular) return 0;
+    if (sides[0].titular !== a) enterBattle(sides[0].titular, sides[1].titular!, 1);
+    if (sides[1].titular !== b) enterBattle(sides[1].titular, sides[0].titular!, 2);
   }
 }
 

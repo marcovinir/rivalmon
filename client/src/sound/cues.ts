@@ -21,7 +21,7 @@ const REVEAL_STEP_MS = 1500;
 /** El efecto de ganar o perder, tras el acierto o el fallo de la última ronda. */
 const AFTER_LAST_ROUND_MS = 500;
 
-const BATTLE_PHASES = new Set<GameView["phase"]>(["starting", "choosing_types", "round_active", "round_result", "auction", "reveal", "lineup", "battle", "battle_pause"]);
+const BATTLE_PHASES = new Set<GameView["phase"]>(["starting", "choosing_types", "round_active", "round_result", "auction", "reveal", "lineup", "battle"]);
 
 /**
  * Cómo terminó la partida para mí: ganarla por cualquier motivo (también porque el rival se fue) es `win`; perderla,
@@ -73,8 +73,8 @@ export function effectsForEvent(before: GameView, event: ServerEvent, after: Gam
     case "battle-turn":
       if (event.payload.actions.length === 0) return [];
       return [now(event.payload.actions[0]!.actor === seat ? "round" : "rival")];
-    case "battle-round-ended":
-      return [now(event.payload.loser === seat ? "wrong" : "correct")];
+    case "battle-fainted":
+      return seat === null ? [] : [now(event.payload.fallen.includes(seat) ? "wrong" : "correct")];
     case "auction-sale":
       return [now("round")];
     case "auction-reveal":

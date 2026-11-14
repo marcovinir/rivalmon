@@ -136,7 +136,7 @@ export function leaveBattle(fighter: Fighter): void {
   }
 }
 
-/** Lo que pasa al salir a pelear: al cambiar y al empezar un asalto. */
+/** Lo que pasa al salir a pelear: al empezar, al cambiar y al entrar un reemplazo. */
 export function enterBattle(fighter: Fighter, rival: Fighter, seat: Seat): BattleNote[] {
   if (fighter.ability !== "intimidate") return [];
   const notes: BattleNote[] = [{ kind: "ability", seat, ability: "intimidate" }];
@@ -274,7 +274,7 @@ export function endOfTurn(sides: Record<Seat, Fighter>): BattleNote[] {
   return notes;
 }
 
-/** Si caen los dos en el mismo turno, solo uno pierde el asalto: el más lento; si empatan, al azar. */
+/** Si los dos se quedan sin Pokémon en el mismo turno, pierde el más lento; si empatan, al azar. */
 export function bothFallenLoser(fighters: Record<Seat, Fighter>, rng: Rng): Seat {
   const diff = fighters[1].pokemon.stats.speed - fighters[2].pokemon.stats.speed;
   if (diff === 0) return rng.int(2) === 0 ? 1 : 2;

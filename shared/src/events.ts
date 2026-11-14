@@ -1,6 +1,6 @@
 import type { ErrorCode } from "./errors.js";
 import type { RematchState } from "./rematch.js";
-import type { AuctionRevealEntry, AuctionSalePayload, AuctionStateView, AuctionSummary, BattleAction, BattleNote, BattleSwitch, BattleMove, BidStep, PauseChoice } from "./auction.js";
+import type { AuctionRevealEntry, AuctionSalePayload, AuctionStateView, AuctionSummary, BattleAction, BattleNote, BattleSwitch, BattleMove, BidStep } from "./auction.js";
 import type { SilhouetteReveal, SilhouetteStateView } from "./silhouette.js";
 import type {
   GameEndReason,
@@ -124,7 +124,6 @@ export interface ClientToServerEvents {
   "auction-lineup": (payload: { order: number[] }) => void;
   "auction-move": (payload: { move: BattleMove }) => void;
   "auction-switch": (payload: { pokemonId: number }) => void;
-  "auction-pause": (payload: { choice: PauseChoice }) => void;
   /** Pedir la revancha o aceptar la que pidió el rival. */
   "rematch-request": () => void;
   /** Cancelar la revancha que pedí o rechazar la que pidió el rival. */
@@ -157,7 +156,8 @@ export interface ServerToClientEvents {
   /** Se resolvió un turno: lo ocurrido en orden. */
   "battle-turn": (payload: { round: number; turn: number; actions: BattleAction[]; switches?: BattleSwitch[]; roundNotes?: BattleNote[]; entryNotes?: BattleNote[]; endNotes?: BattleNote[] }) => void;
   /** Cayó un Pokémon: `atLimit` si fue por el límite de turnos. */
-  "battle-round-ended": (payload: { round: number; loser: Seat; atLimit: boolean }) => void;
+  /** Cayeron estos titulares (#57); `atLimit` si fue por el límite de turnos seguidos sin caídas. */
+  "battle-fainted": (payload: { fallen: Seat[]; atLimit: boolean }) => void;
   "silhouette-round-started": (payload: { serverNow: number; round: number; totalRounds: number; deadline: number; silhouetteUrl: string }) => void;
   "silhouette-answer-received": (payload: { ms: number }) => void;
   "silhouette-round-result": (payload: { serverNow: number; reveal: SilhouetteReveal; totals: Record<Seat, number>; nextRoundAt: number | null }) => void;

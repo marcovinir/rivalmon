@@ -476,7 +476,7 @@ describe("la subasta", () => {
 describe("el registro del combate", () => {
   const action = { actor: 1 as const, move: "ember", moveName: "Ascuas", damage: 5, critical: false, effectiveness: 1, healed: 0, actorHp: 9, targetHp: 9, missed: false, blocked: null, notes: [] };
   const fighter = (id: number, name: string) => ({ pokemon: pokemon(id, 400, { names: { es: name, en: name } }), hp: 9, maxHp: 9, ability: null, status: null, stages: {} });
-  const battle = { round: 1, turn: 1, scene: "bosque" as const, deadline: null, choosing: true, stepId: 1, warningUntil: null, rivalIdle: false, confirmed: false, myLineup: null, myMove: null, mySwitch: null, myPause: null, myTeam: [fighter(1, "Uno"), fighter(3, "Tres")], rivalTeam: [fighter(2, "Dos"), fighter(4, "Cuatro")], myTitular: 1, rivalTitular: 2, moves: [] };
+  const battle = { round: 1, turn: 1, scene: "bosque" as const, deadline: null, choosing: true, stepId: 1, warningUntil: null, rivalIdle: false, confirmed: false, myLineup: null, myMove: null, mySwitch: null, mustReplace: false, rivalReplacing: false, myReplacement: null, calmTurns: 0, myTeam: [fighter(1, "Uno"), fighter(3, "Tres")], rivalTeam: [fighter(2, "Dos"), fighter(4, "Cuatro")], myTitular: 1, rivalTitular: 2, moves: [] };
   const start: GameView = { ...initialGameView, code: "ABC", mySeat: 1, auction: { money: { 1: 0, 2: 0 }, teamSizes: { 1: 3, 2: 3 }, purchases: { 1: [], 2: [] }, lot: null, reveal: [], battle } };
   const turn = (n: number): ServerEvent => ({ name: "battle-turn", payload: { round: 1, turn: n, actions: [action] } });
 
@@ -498,7 +498,7 @@ describe("el registro del combate", () => {
   });
 
   it("recuerda cómo acabó el asalto", () => {
-    const view = applyServerEvent(start, { name: "battle-round-ended", payload: { round: 1, loser: 2, atLimit: false } }, 0);
-    expect(view.lastRoundEnd).toEqual({ round: 1, loser: 2, atLimit: false });
+    const view = applyServerEvent(start, { name: "battle-fainted", payload: { fallen: [2], atLimit: false } }, 0);
+    expect(view.lastFainted).toEqual({ round: 1, turn: 1, fallen: [2], atLimit: false });
   });
 });

@@ -14,7 +14,6 @@ export const AUTO_LOT_MS = 2_000;
 /** La revelación: 1,5 s por Pokémon, y se salta si los dos confirman. */
 export const REVEAL_MS = 18_000;
 export const LINEUP_MS = 30_000;
-export const PAUSE_MS = 15_000;
 export const TEAM_SIZE = 6;
 export const LOTS_PER_THIRD = 4;
 /** Lo que se reserva por cada hueco del equipo, para poder completarlo. */
@@ -29,7 +28,8 @@ export const STRUGGLE_POWER = 50;
 export const PARALYSIS_ODDS = 4;
 /** Tocar a un Pokémon con estado por contacto: 3 de cada tantos lo contagian. */
 export const CONTACT_ODDS = 10;
-export const MAX_TURNS_PER_ROUND = 20;
+/** Turnos seguidos sin que caiga nadie: al llegar, cae quien tenga menos PS (#57). */
+export const MAX_CALM_TURNS = 20;
 /** Un crítico de cada tantos ataques. */
 export const CRITICAL_ODDS = 16;
 const CRITICAL_MULTIPLIER = 1.5;

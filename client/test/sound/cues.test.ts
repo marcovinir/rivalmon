@@ -180,7 +180,8 @@ describe("el combate suena", () => {
   });
 
   it("el K.O. suena bien si cayó el rival, y mal si caí yo", () => {
-    expect(effectsForEvent(me, { name: "battle-round-ended", payload: { round: 1, loser: 2, atLimit: false } }, me)).toEqual([{ effect: "correct", delayMs: 0 }]);
-    expect(effectsForEvent(me, { name: "battle-round-ended", payload: { round: 1, loser: 1, atLimit: false } }, me)).toEqual([{ effect: "wrong", delayMs: 0 }]);
+    expect(effectsForEvent(me, { name: "battle-fainted", payload: { fallen: [2], atLimit: false } }, me)).toEqual([{ effect: "correct", delayMs: 0 }]);
+    expect(effectsForEvent(me, { name: "battle-fainted", payload: { fallen: [1], atLimit: false } }, me)).toEqual([{ effect: "wrong", delayMs: 0 }]);
+    expect(effectsForEvent(me, { name: "battle-fainted", payload: { fallen: [1, 2], atLimit: false } }, me)).toEqual([{ effect: "wrong", delayMs: 0 }]);
   });
 });
