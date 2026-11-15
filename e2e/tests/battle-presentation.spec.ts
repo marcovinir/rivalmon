@@ -135,3 +135,54 @@ for (const reduced of [false, true]) {
     }
   });
 }
+
+// #57: al caer un Pokémon no hay pausa ni K.O.; se elige al siguiente en la misma pantalla.
+test("elegir al siguiente cabe a 360, 375 y escritorio, sin K.O. y con contraste en los 4 temas", async ({ browser }, testInfo) => {
+  test.setTimeout(240_000);
+  const player = await newPlayer(browser, "a".repeat(24));
+  const page = player.page;
+  try {
+    const fixture = await battlePresentation(page);
+    await guestLogin(page, player.name);
+    await page.goto("/sala/ABC234");
+    await expect(page.getByRole("meter", { name: "PS de Bulbasaur" })).toBeVisible();
+    for (const [index, width] of [360, 375, 1280].entries()) {
+      await page.setViewportSize({ width, height: width < 1000 ? 760 : 900 });
+      const base = presentationBattle({ turn: index + 2 });
+      fixture.state({ ...base, choosing: false, moves: [], mustReplace: true, myTeam: base.myTeam.map((one, i) => (i === 0 || i === 2 ? { ...one, hp: 0 } : one)) });
+      await expect(page.getByRole("heading", { name: "¿Quién sale ahora?" })).toBeVisible();
+      await expect(page.getByText("K.O.", { exact: true })).toHaveCount(0);
+      const options = page.locator("button.battle-replacement");
+      await expect(options).toHaveCount(4);
+      const scroll = await page.evaluate(() => window.scrollY);
+      for (const option of await options.all()) {
+        const box = await option.boundingBox();
+        expect(box!.x).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+        if (width < 1000) expect(box!.y + box!.height + scroll, "se alcanza sin desplazar en el móvil").toBeLessThanOrEqual(760);
+      }
+      // El debilitado se desvanece con su animación, calculada por el navegador.
+      await expect.poll(() => page.locator(".battle-fainted > *").first().evaluate((node) => getComputedStyle(node).animationName)).toBe("battle-faint");
+      await page.waitForTimeout(700);
+      // «Tu equipo» está desactivado mientras se elige al siguiente, y atenuado como al animar un turno: el auditor
+      // omite los botones desactivados pero no sus textos (el mismo falso positivo que evita la prueba de arriba).
+      // Se oculta solo durante la auditoría, que así mide lo nuevo: los botones del reemplazo y sus textos.
+      const team = page.locator(`section[aria-label="Tu equipo"]`);
+      await team.evaluate((node) => { (node as HTMLElement).style.visibility = "hidden"; });
+      await page.addScriptTag({ content: readFileSync(new URL("../../client/scripts/contrast-audit.js", import.meta.url), "utf8") });
+      const report = await page.evaluate(() => (window as unknown as { __contrastAuditAll(): Promise<Record<string, string[]>> }).__contrastAuditAll());
+      expect(report).toEqual({ "clasico/claro": [], "clasico/oscuro": [], "pokedex/claro": [], "pokedex/oscuro": [] });
+      await team.evaluate((node) => { (node as HTMLElement).style.visibility = ""; });
+      for (const theme of ["clasico", "pokedex"]) for (const mode of ["claro", "oscuro"]) {
+        await page.evaluate(({ theme, mode }) => { document.documentElement.dataset.theme = theme; document.documentElement.dataset.mode = mode; window.scrollTo(0, 0); }, { theme, mode });
+        await page.screenshot({ path: testInfo.outputPath(`reemplazo-${width}-${theme}-${mode}.png`), fullPage: true });
+      }
+      // El rival, en cambio, sigue en la misma pantalla y sabe que estoy eligiendo.
+      fixture.state({ ...base, choosing: false, moves: [], rivalReplacing: true });
+      await expect(page.getByText(`${"b".repeat(30)} está eligiendo a su siguiente Pokémon…`)).toBeVisible();
+      await page.screenshot({ path: testInfo.outputPath(`rival-eligiendo-${width}.png`), fullPage: true });
+    }
+  } finally {
+    await player.context.close();
+  }
+});
