@@ -497,8 +497,7 @@ describe("el registro del combate", () => {
     expect(view.battleLog[0]!.turn).toBe(6);
   });
 
-  it("recuerda cómo acabó el asalto", () => {
-    const view = applyServerEvent(start, { name: "battle-fainted", payload: { fallen: [2], atLimit: false } }, 0);
-    expect(view.lastFainted).toEqual({ round: 1, turn: 1, fallen: [2], atLimit: false });
+  it("la caída no cambia la vista: ya va como nota en su turno", () => {
+    expect(applyServerEvent(start, { name: "battle-fainted", payload: { fallen: [2], atLimit: false } }, 0)).toBe(start);
   });
 });

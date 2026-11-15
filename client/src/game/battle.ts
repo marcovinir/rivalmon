@@ -67,6 +67,8 @@ export function noteLine(note: BattleNote, names: Names, abilityNames: Record<st
   switch (note.kind) {
     case "woke":
       return `${name} se despertó.`;
+    case "fainted":
+      return note.atLimit ? `${name} se debilitó por el límite de turnos.` : `¡${name} se debilitó!`;
     case "healed":
       return `${name} recuperó ${note.amount} PS.`;
     case "status":
@@ -123,9 +125,4 @@ export function turnSummary(actions: BattleAction[], names: Names, { entered = [
   });
   const hitsWithNotes = actionsWithNotes(actions, (_, index) => hits[index]!, notes);
   return [...roundNotes.map((note) => noteLine(note, roundNames, abilityNames)), ...entered.map(enteredLine), ...notes(entryNotes), ...hitsWithNotes, ...notes(endNotes)].join(" ");
-}
-
-/** Quién puede salir a pelear. */
-export function aliveIds(team: BattleFighterView[]): number[] {
-  return team.filter((fighter) => fighter.hp > 0).map((fighter) => fighter.pokemon.id);
 }

@@ -28,6 +28,8 @@ export function buildBattleFrames(before: BattleView, entry: BattleLogEntry, myS
     if (note.kind === "failed") return;
     if (note.kind === "recoil" || note.kind === "residual") hp(note.seat, (current) => current - note.damage);
     else if (note.kind === "healed") hp(note.seat, (current) => current + note.amount);
+    // Por el límite cae con PS: la barra baja a 0 en este paso.
+    else if (note.kind === "fainted") hp(note.seat, () => 0);
     else if (note.kind === "status") update(note.seat, (fighter) => ({ ...fighter, status: note.status }));
     else if (note.kind === "woke") update(note.seat, (fighter) => ({ ...fighter, status: null }));
     else if (note.kind === "stat") update(note.seat, (fighter) => {

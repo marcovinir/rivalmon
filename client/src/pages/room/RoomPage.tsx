@@ -83,14 +83,19 @@ function announcement(view: GameView): string {
       if (!battle) return "";
       const last = view.battleLog[view.battleLog.length - 1];
       if (!last) {
+        if (battle.mustReplace) return BATTLE_TEXT.whoNext;
+        if (battle.rivalReplacing) return BATTLE_TEXT.rivalReplacing(view.players.find((player) => player.seat !== view.mySeat)?.username ?? "");
         const nameIn = (team: typeof battle.myTeam, id: number | null) => team.find((one) => one.pokemon.id === id)?.pokemon.names.es ?? "";
         return BATTLE_TEXT.versus(nameIn(battle.myTeam, battle.myTitular), nameIn(battle.rivalTeam, battle.rivalTitular));
       }
       // Con el turno delante, dos turnos con el mismo daño también se anuncian; la entrada de un reemplazo no es un turno.
       const summary = turnSummary(last.actions, last.names, last);
       const news = last.actions.length === 0 ? summary : BATTLE_TEXT.turnNews(last.turn, summary);
-      const fell = view.lastFainted?.round === last.round && view.lastFainted.turn === last.turn ? view.lastFainted : null;
-      return fell ? [news, ...fell.fallen.map((seat) => BATTLE_TEXT.fell(last.names[seat], fell.atLimit))].join(" ") : news;
+      // Elegir al siguiente no tiene botones de ataque que reciban el foco: se dice en voz alta.
+      const rivalName = view.players.find((player) => player.seat !== view.mySeat)?.username ?? "";
+      if (battle.mustReplace && battle.myReplacement === null) return `${news} ${BATTLE_TEXT.whoNext}`;
+      if (battle.rivalReplacing && !battle.mustReplace) return `${news} ${BATTLE_TEXT.rivalReplacing(rivalName)}`;
+      return news;
     }
     case "auction": {
       const nameOf = (seat: number | null) => view.players.find((player) => player.seat === seat)?.username ?? "Tu rival";

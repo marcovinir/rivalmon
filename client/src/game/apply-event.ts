@@ -93,8 +93,6 @@ export interface GameView {
   lastSale: AuctionSalePayload | null;
   /** Los últimos turnos del combate, con los nombres de quienes pelearon entonces. Se pierde al recargar. */
   battleLog: BattleLogEntry[];
-  /** Las últimas caídas y el turno en que fueron, para el lector de pantalla (#57). */
-  lastFainted: { round: number; turn: number; fallen: Seat[]; atLimit: boolean } | null;
   /** Hora del servidor menos hora del navegador. */
   clockOffset: number;
   lastError: { code: ErrorCode; message: string } | null;
@@ -153,7 +151,6 @@ export const initialGameView: GameView = {
   auction: null,
   lastSale: null,
   battleLog: [],
-  lastFainted: null,
   clockOffset: 0,
   lastError: null,
 };
@@ -202,7 +199,6 @@ export function applyServerEvent(view: GameView, event: ServerEvent, receivedAt:
         silhouette: state.silhouette ? silhouetteFrom(state.silhouette, view.silhouette) : null,
         auction: state.auction ?? null,
         battleLog: view.code === state.code ? view.battleLog : [],
-        lastFainted: view.code === state.code ? view.lastFainted : null,
         ended: null,
         clockOffset: clockOffset(state.serverNow, receivedAt),
         lastError: null,
@@ -365,11 +361,9 @@ export function applyServerEvent(view: GameView, event: ServerEvent, receivedAt:
       return { ...view, battleLog: [...view.battleLog, { round, turn, actions, before: battle ?? null, switches, names, entered: switches.map((one) => names[one.seat]), roundNotes, roundNames: fightingNames(view, []), entryNotes, endNotes, abilityNames }].slice(-BATTLE_LOG_MAX) };
     }
 
-    case "battle-fainted": {
-      // El turno que lo causó: el último del registro, o el que dice el combate si se recargó y aún no hay registro.
-      const last = view.battleLog.at(-1) ?? view.auction?.battle;
-      return last ? { ...view, lastFainted: { round: last.round, turn: last.turn, ...event.payload } } : view;
-    }
+    // La caída ya va como nota en su `battle-turn`; este evento es para el sonido.
+    case "battle-fainted":
+      return view;
 
     // Lo que cambia llega en `room-state`.
     case "auction-reveal":

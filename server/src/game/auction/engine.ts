@@ -1,4 +1,4 @@
-import { AUCTION_SCENES, type AuctionConfig, BID_STEPS, battleTurnDurationMs, type BattleMove, type BidStep, type ErrorCode, type Seat, type ServerEvent } from "@pokemon-minigames/shared";
+import { AUCTION_SCENES, type AuctionConfig, BID_STEPS, battleTurnDurationMs, type BattleMove, type BattleNote, type BidStep, type ErrorCode, type Seat, type ServerEvent } from "@pokemon-minigames/shared";
 import {
   RECONNECT_GRACE_SECONDS,
   REMATCH_ROOM_TTL_SECONDS,
@@ -666,9 +666,8 @@ function resolveCurrentTurn(c: Ctx): void {
   const actions = resolveTurn(sides, { 1: choiceOf(1), 2: choiceOf(2) }, c.deps.rng);
   const endNotes = endOfTurn(sides);
   for (const action of actions) battle.damage[action.actor] += action.damage;
-  const presentation = { actions, switches, roundNotes, entryNotes, endNotes };
-  emit(c, "all", { name: "battle-turn", payload: { round: battle.round, turn: battle.turn, ...presentation } });
 
+  // La caída se decide antes de publicar el turno: su nota cierra la animación, también si es por el límite.
   battle.calmTurns++;
   let fallen = ([1, 2] as const).filter((seat) => sides[seat].hp <= 0);
   const atLimit = fallen.length === 0 && battle.calmTurns >= MAX_CALM_TURNS;
@@ -677,6 +676,9 @@ function resolveCurrentTurn(c: Ctx): void {
     sides[loser].hp = 0;
     fallen = [loser];
   }
+  endNotes.push(...fallen.map((seat): BattleNote => ({ kind: "fainted", seat, atLimit })));
+  const presentation = { actions, switches, roundNotes, entryNotes, endNotes };
+  emit(c, "all", { name: "battle-turn", payload: { round: battle.round, turn: battle.turn, ...presentation } });
   battle.fallen = fallen;
   if (fallen.length > 0) {
     battle.calmTurns = 0;

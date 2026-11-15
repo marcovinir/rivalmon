@@ -1,5 +1,5 @@
-import { screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fighter, battleState, MY_TEAM } from "../helpers/battle";
 import { renderRoom, serverSends } from "../helpers/room";
 import { fakeServices } from "../helpers/services";
@@ -28,7 +28,8 @@ describe("elegir al siguiente Pokémon", () => {
 
   it("el rival ve que estoy eligiendo, en la misma pantalla", () => {
     renderRoom([battleState("battle", { choosing: false, moves: [], rivalReplacing: true })]);
-    expect(screen.getByText("misty está eligiendo a su siguiente Pokémon…")).toBeInTheDocument();
+    const visible = screen.getAllByText("misty está eligiendo a su siguiente Pokémon…").filter((one) => !one.closest('[role="log"]'));
+    expect(visible).toHaveLength(1);
     expect(screen.queryByRole("heading", { name: "¿Quién sale ahora?" })).toBeNull();
   });
 
@@ -47,7 +48,40 @@ describe("el contador", () => {
     const { unmount } = renderRoom([battleState("battle", { round: 3, turn: 7, calmTurns: 14 })]);
     expect(screen.getByText("Turno 7")).toBeInTheDocument();
     unmount();
-    renderRoom([battleState("battle", { turn: 27, calmTurns: 16, myTeam: MY_TEAM })]);
+    // Ya resueltos 15 sin caídas: el que se elige ahora es el 16.º de 20.
+    const { unmount: again } = renderRoom([battleState("battle", { turn: 27, calmTurns: 15, myTeam: MY_TEAM })]);
     expect(screen.getByText("Turno 27 · Límite 16/20")).toBeInTheDocument();
+    again();
+    renderRoom([battleState("battle", { turn: 31, calmTurns: 19, myTeam: MY_TEAM })]);
+    expect(screen.getByText("Turno 31 · Límite 20/20")).toBeInTheDocument();
+  });
+});
+
+describe("lo que dice la revisión independiente", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("si caen los dos, el debilitado del rival no reaparece mientras entra mi reemplazo", () => {
+    vi.useFakeTimers();
+    const services = fakeServices();
+    const both = { choosing: false, moves: [], myTeam: fallenTeam, rivalTeam: [fighter(4, "Cuatro", 0), fighter(5, "Cinco")] };
+    renderRoom([battleState("battle", { ...both, round: 1, turn: 3 })], services);
+    serverSends(services, { name: "battle-turn", payload: { round: 2, turn: 3, actions: [], switches: [{ seat: 1, pokemonId: 2 }, { seat: 2, pokemonId: 5 }] } });
+    serverSends(services, battleState("battle", { ...both, round: 2, turn: 3, myTitular: 2, rivalTitular: 5 }));
+    // Primer paso: entra el mío; el del rival sigue caído y desvanecido.
+    expect(screen.getByRole("img", { name: "Dos" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Cuatro" }).closest(".battle-fainted")).not.toBeNull();
+    act(() => vi.advanceTimersByTime(700));
+    expect(screen.getByRole("img", { name: "Cinco" }).closest(".battle-fainted")).toBeNull();
+  });
+
+  it("al lector se le dice que tiene que elegir, y al rival que espera; el foco va a la primera opción", () => {
+    renderRoom([battleState("battle", { choosing: false, moves: [], mustReplace: true, myTeam: fallenTeam })]);
+    expect(screen.getByRole("log", { name: "Anuncios de la partida" })).toHaveTextContent("¿Quién sale ahora?");
+    expect(screen.getByRole("button", { name: "Sacar a Dos" })).toHaveFocus();
+  });
+
+  it("el rival oye que estoy eligiendo", () => {
+    renderRoom([battleState("battle", { choosing: false, moves: [], rivalReplacing: true })]);
+    expect(screen.getByRole("log", { name: "Anuncios de la partida" })).toHaveTextContent("misty está eligiendo a su siguiente Pokémon…");
   });
 });

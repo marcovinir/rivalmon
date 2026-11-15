@@ -371,10 +371,9 @@ describe("el combate", () => {
     const log = screen.getByRole("log", { name: "Anuncios de la partida" });
     serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 1, actions: [hit] } });
     serverSends(services, battleState("battle", { turn: 2 }));
-    serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 2, actions: [hit] } });
-    expect(log).toHaveTextContent("Turno 2: Uno, 42 de daño.");
+    serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 2, actions: [hit], endNotes: [{ kind: "fainted", seat: 2, atLimit: true }] } });
     serverSends(services, { name: "battle-fainted", payload: { fallen: [2], atLimit: true } });
-    expect(log).toHaveTextContent("Cuatro se debilitó por el límite de turnos.");
+    expect(log).toHaveTextContent("Turno 2: Uno, 42 de daño. Cuatro se debilitó por el límite de turnos.");
     serverSends(services, { name: "battle-turn", payload: { round: 2, turn: 2, actions: [], switches: [{ seat: 2, pokemonId: 5 }] } });
     expect(log).toHaveTextContent("¡Adelante, Cinco!");
   });

@@ -74,7 +74,9 @@ export type BattleNote =
   | { kind: "no_effect"; seat: Seat }
   | { kind: "failed" }
   | { kind: "woke"; seat: Seat }
-  | { kind: "healed"; seat: Seat; amount: number };
+  | { kind: "healed"; seat: Seat; amount: number }
+  /** Se debilitó su titular (#57); con `atLimit`, por los 20 turnos seguidos sin caídas. Va al final del turno. */
+  | { kind: "fainted"; seat: Seat; atLimit: boolean };
 
 export type Status = "burn" | "paralysis" | "poison" | "sleep";
 export type BoostStat = "attack" | "defense" | "spAttack" | "spDefense" | "speed";
@@ -160,7 +162,7 @@ export interface BattleView {
   scene: AuctionScene;
   /** Hasta cuándo se puede decidir en la revelación o la alineación. Elegir movimiento no tiene reloj: siempre nula. */
   deadline: number | null;
-  /** Se está eligiendo movimiento; falso mientras se anima un turno. */
+  /** Se está eligiendo movimiento; falso mientras se anima un turno y mientras alguien elige al siguiente Pokémon. */
   choosing: boolean;
   /** Identifica este paso: «Sigo aquí» lo manda para que una pulsación tardía no valga para otro. */
   stepId: number;

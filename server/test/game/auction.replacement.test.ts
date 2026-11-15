@@ -58,6 +58,7 @@ describe("al caer un Pokémon", () => {
     faint(h, 1);
     expect(h.state.phase).toBe("battle");
     expect(h.payloads("battle-fainted")).toEqual([{ fallen: [1], atLimit: false }]);
+    expect(h.payloads("battle-turn").at(-1)!.endNotes!.at(-1)).toEqual({ kind: "fainted", seat: 1, atLimit: false });
     expect(battle(h, 1)).toMatchObject({ mustReplace: true, rivalReplacing: false, choosing: false, moves: [] });
     expect(battle(h, 2)).toMatchObject({ mustReplace: false, rivalReplacing: true, choosing: false, moves: [] });
   });
@@ -118,6 +119,7 @@ describe("si caen los dos a la vez", () => {
     doomed(h, 2);
     chooseBoth(h);
     expect(h.payloads("battle-fainted")).toEqual([{ fallen: [1, 2], atLimit: false }]);
+    expect(h.payloads("battle-turn").at(-1)!.endNotes!.slice(-2)).toEqual([{ kind: "fainted", seat: 1, atLimit: false }, { kind: "fainted", seat: 2, atLimit: false }]);
     finishAnimation(h);
     expect(battle(h, 1)).toMatchObject({ mustReplace: true, rivalReplacing: true });
     const [a, b] = [reserves(h, 1)[0]!.pokemon.id, reserves(h, 2)[0]!.pokemon.id];
@@ -187,8 +189,10 @@ describe("el límite de turnos", () => {
     expect(h.payloads("battle-fainted")).toEqual([]);
     chooseBoth(h);
     expect(h.payloads("battle-fainted")).toEqual([{ fallen: [expect.any(Number)], atLimit: true }]);
-    finishAnimation(h);
     const loser = h.payloads("battle-fainted")[0]!.fallen[0]! as Seat;
+    // La nota va en el mismo turno: la animación baja la barra a 0 y explica por qué.
+    expect(h.payloads("battle-turn").at(-1)!.endNotes!.at(-1)).toEqual({ kind: "fainted", seat: loser, atLimit: true });
+    finishAnimation(h);
     h.dispatch({ type: "CHOOSE_SWITCH", seat: loser, pokemonId: reserves(h, loser)[0]!.pokemon.id });
     finishAnimation(h);
     expect(battle(h, 1)).toMatchObject({ calmTurns: 0, turn: 21 });

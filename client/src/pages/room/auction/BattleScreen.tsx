@@ -63,6 +63,11 @@ export function BattleScreen() {
   useEffect(() => {
     if (turnKey !== null && focusWasLost()) movesRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus({ preventScroll: true });
   }, [turnKey]);
+  // Igual al tener que elegir al siguiente: los botones de ataque ya no están.
+  const replaceKey = battle?.mustReplace && battle.myReplacement === null && !playback.busy ? `${battle.round}-${battle.turn}` : null;
+  useEffect(() => {
+    if (replaceKey !== null && focusWasLost()) document.querySelector<HTMLButtonElement>("button.battle-replacement:not(:disabled)")?.focus({ preventScroll: true });
+  }, [replaceKey]);
   if (!battle || view.mySeat === null) return null;
 
   const mySeat = view.mySeat;
@@ -80,8 +85,8 @@ export function BattleScreen() {
     }
     return effect;
   };
-  // Sin rótulo de K.O. (#57): el debilitado se desvanece cuando acaba el golpe que lo dejó así.
-  const faded = (fighter: BattleFighterView): boolean => fighter.hp <= 0 && !playback.busy;
+  // Sin rótulo de K.O. (#57): el debilitado se desvanece con el golpe que lo deja a 0 y sigue así hasta que lo sustituyen.
+  const faded = (fighter: BattleFighterView): boolean => fighter.hp <= 0;
   const replacing = battle.mustReplace && !playback.busy;
   const lines = [...view.battleLog].reverse().flatMap((entry) => turnLines(entry.actions, entry.names, entry).map((line, index) => ({ key: `${entry.round}-${entry.turn}-${index}`, line })));
   const tipAbility = (tip === "mine" ? mine : tip === "theirs" ? theirs : undefined)?.ability ?? null;
