@@ -11,6 +11,7 @@ import { LeaveButton } from "../LeaveButton";
 import { focusWasLost } from "../RematchPanel";
 import { useRoom } from "../use-room";
 import { BattleSprite } from "./BattleSprite";
+import { AttackEffect } from "../../../components/AttackEffect";
 import { HpBar } from "./HpBar";
 import { InactivityWarning } from "./InactivityWarning";
 import { useBattlePlayback } from "./use-battle-playback";
@@ -99,6 +100,7 @@ export function BattleScreen() {
           <img src={`/auction/combate-${battle.scene}.png`} alt="" className="absolute inset-0 size-full object-cover [image-rendering:pixelated]" />
           {theirs ? <BattleSprite key={theirs.pokemon.id} id={theirs.pokemon.id} name={theirs.pokemon.names.es} side="front" status={theirs.status} effect={effectOf(rival)} fainted={faded(theirs)} showsAbility={theirs.ability !== null} describedBy={tip === "theirs" ? "battle-tip" : undefined} onAbility={(open) => setTip(open ? "theirs" : null)} /> : null}
           {mine ? <BattleSprite key={mine.pokemon.id} id={mine.pokemon.id} name={mine.pokemon.names.es} side="back" status={mine.status} effect={effectOf(mySeat)} fainted={faded(mine)} showsAbility={mine.ability !== null} describedBy={tip === "mine" ? "battle-tip" : undefined} onAbility={(open) => setTip(open ? "mine" : null)} /> : null}
+          {playback.frame?.projectile ? <AttackEffect key={playback.index} type={playback.frame.projectile.type} from={playback.frame.projectile.from} /> : null}
           {playback.frame ? <p aria-hidden="true" data-battle-step={playback.frame.step.kind} data-battle-step-index={playback.index} className="battle-step">{playback.frame.text}</p> : null}
           {theirs ? (
             <div className="absolute top-1.5 left-1.5 w-44 lg:top-4 lg:left-4 lg:w-72">

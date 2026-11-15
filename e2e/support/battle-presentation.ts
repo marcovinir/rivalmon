@@ -12,7 +12,7 @@ export function presentationBattle(over: Partial<BattleView> = {}): BattleView {
     moves: ["Placaje", "Hoja Afilada", "Recuperación", "Desarrollo"].map((name, index) => ({ move: `move-${index}`, name, type: "normal", category: "physical", power: 40, accuracy: 100, pp: 10, maxPp: 35, effectiveness: 1, effect: null })), ...over };
 }
 
-export const presentationHit = (over: Partial<BattleAction> = {}): BattleAction => ({ actor: 1, move: "tackle", moveName: "Placaje", damage: 30, critical: false, effectiveness: 1, healed: 0, actorHp: 100, targetHp: 70, missed: false, blocked: null, notes: [], ...over });
+export const presentationHit = (over: Partial<BattleAction> = {}): BattleAction => ({ actor: 1, move: "tackle", moveName: "Placaje", moveType: "normal", damage: 30, critical: false, effectiveness: 1, healed: 0, actorHp: 100, targetHp: 70, missed: false, blocked: null, notes: [], ...over });
 
 /** Presentación determinista sobre el cliente y CSS de producción; no sustituye la E2E del motor real.
  * Se simula el transporte polling de Socket.io para entregar resultados públicos en un orden conocido. */

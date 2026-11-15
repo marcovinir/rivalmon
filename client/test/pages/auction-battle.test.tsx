@@ -5,7 +5,7 @@ import { SERVER_NOW } from "../helpers/events";
 import { renderRoom, serverSends } from "../helpers/room";
 import { fakeServices } from "../helpers/services";
 
-const hit = { actor: 1 as const, move: "flamethrower", moveName: "Lanzallamas", damage: 42, critical: false, effectiveness: 2, healed: 0, actorHp: 100, targetHp: 58, missed: false, blocked: null, notes: [] };
+const hit = { actor: 1 as const, move: "flamethrower", moveName: "Lanzallamas", moveType: "fire" as const, damage: 42, critical: false, effectiveness: 2, healed: 0, actorHp: 100, targetHp: 58, missed: false, blocked: null, notes: [] };
 
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
@@ -42,6 +42,27 @@ describe("la secuencia del turno", () => {
     serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 1, actions: [{ ...hit, ...over }] } });
     expect(container.querySelector(".battle-lunge, .battle-hit, .battle-flash")).toBeNull();
     expect(container.querySelector("[data-battle-step]")).not.toBeNull();
+  });
+
+  it("el efecto del tipo del movimiento sale en el impacto, antes de los recuadros de PS, y uno nuevo por golpe", () => {
+    vi.useFakeTimers();
+    const services = fakeServices();
+    const { container } = renderRoom([battleState("battle")], services);
+    serverSends(services, { name: "battle-turn", payload: { round: 1, turn: 1, actions: [hit, { ...hit, actor: 2, moveType: "water" as const, damage: 20, actorHp: 58, targetHp: 80 }] } });
+    expect(container.querySelector("[data-attack-effect]")).toBeNull();
+    act(() => vi.advanceTimersByTime(250));
+    const first = container.querySelector("[data-arena] [data-attack-effect]");
+    expect(first).toHaveAttribute("data-type", "fire");
+    expect(first).toHaveAttribute("data-from", "left");
+    // Va antes de las barras de PS en la arena: así no las tapa.
+    const meter = screen.getByRole("meter", { name: "PS de Cuatro" });
+    expect(first!.compareDocumentPosition(meter) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    act(() => vi.advanceTimersByTime(950));
+    expect(container.querySelector("[data-attack-effect]")).toBeNull();
+    act(() => vi.advanceTimersByTime(250));
+    const second = container.querySelector("[data-attack-effect]");
+    expect(second).toHaveAttribute("data-type", "water");
+    expect(second).toHaveAttribute("data-from", "right");
   });
 
   it("cada golpe baja la barra de quien lo recibe en su momento", () => {

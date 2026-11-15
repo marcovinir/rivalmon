@@ -175,7 +175,7 @@ function useMove(id: BattleMove, me: Fighter, rival: Fighter, actor: Seat, rng: 
   const move = moveData(id) ?? STRUGGLE_MOVE;
   const target = otherSeat(actor);
   const notes: BattleNote[] = [];
-  const action: BattleAction = { actor, move: id, moveName: move.names.es, damage: 0, critical: false, effectiveness: 1, healed: 0, actorHp: me.hp, targetHp: rival.hp, missed: false, blocked: blockedBy(me, actor, rng, notes), notes };
+  const action: BattleAction = { actor, move: id, moveName: move.names.es, moveType: id === STRUGGLE ? null : move.type, damage: 0, critical: false, effectiveness: 1, healed: 0, actorHp: me.hp, targetHp: rival.hp, missed: false, blocked: blockedBy(me, actor, rng, notes), notes };
   const finish = () => ({ ...action, actorHp: me.hp, targetHp: rival.hp });
   if (action.blocked) return finish();
 

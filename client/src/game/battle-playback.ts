@@ -1,4 +1,4 @@
-import { battleTurnSteps, type BattleAction, type BattleFighterView, type BattleNote, type BattleStep, type BattleView, type Seat } from "@pokemon-minigames/shared";
+import { battleTurnSteps, type BattleAction, type TypeName, type BattleFighterView, type BattleNote, type BattleStep, type BattleView, type Seat } from "@pokemon-minigames/shared";
 import type { BattleLogEntry } from "./apply-event";
 import { actionLine, noteLine } from "./battle";
 import { rivalSeat } from "./seats";
@@ -8,6 +8,16 @@ export interface BattleFrame {
   step: BattleStep;
   text: string;
   effects: Partial<Record<Seat, string>>;
+  /** El efecto de ataque (#42) que sale en este cuadro: `left` es el Pokémon de abajo, el mío. */
+  projectile?: { type: TypeName | null; from: "left" | "right" };
+}
+
+/** Un golpe que llega, o un movimiento de apoyo que va contra el rival (un estado o una bajada de stats). */
+function reachesRival(action: BattleAction, attack: boolean): boolean {
+  if (attack) return true;
+  if (action.missed || action.blocked || action.effectiveness === 0) return false;
+  const rival = rivalSeat(action.actor);
+  return action.notes.some((note) => (note.kind === "status" && note.seat === rival) || (note.kind === "stat" && note.seat === rival && note.change < 0));
 }
 
 /** Cuadros inmutables de lo ya resuelto; los PS publicados son puntos de control, no otra fórmula de daño. */
@@ -40,6 +50,7 @@ export function buildBattleFrames(before: BattleView, entry: BattleLogEntry, myS
   return battleTurnSteps(entry).map((step): BattleFrame => {
     let text = "El turno terminó.";
     const effects: BattleFrame["effects"] = {};
+    let projectile: BattleFrame["projectile"];
     switch (step.kind) {
       case "switch": {
         const key = step.change.seat === mySeat ? "myTitular" : "rivalTitular";
@@ -61,6 +72,7 @@ export function buildBattleFrames(before: BattleView, entry: BattleLogEntry, myS
           if (action.effectiveness !== 0) hp(action.actor, (current) => current + action.healed);
           if (action.notes.every((note) => note.kind === "woke")) checkpoint(action);
         }
+        if (reachesRival(action, step.attack)) projectile = { type: action.moveType, from: action.actor === mySeat ? "left" : "right" };
         if (step.attack) effects[rivalSeat(action.actor)] = "battle-hit";
         else if (action.blocked) effects[action.actor] = `battle-afflicted-${action.blocked}`;
         else if (action.healed > 0) effects[action.actor] = "battle-heal";
@@ -83,6 +95,6 @@ export function buildBattleFrames(before: BattleView, entry: BattleLogEntry, myS
       case "complete":
         break;
     }
-    return { battle, step, text, effects };
+    return projectile ? { battle, step, text, effects, projectile } : { battle, step, text, effects };
   });
 }

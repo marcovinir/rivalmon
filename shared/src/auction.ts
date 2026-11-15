@@ -113,6 +113,8 @@ export interface BattleAction {
   actor: Seat;
   move: BattleMove;
   moveName: string;
+  /** El tipo del movimiento, para su efecto de ataque; nulo en Forcejeo, que no tiene. */
+  moveType: TypeName | null;
   damage: number;
   critical: boolean;
   effectiveness: number;
