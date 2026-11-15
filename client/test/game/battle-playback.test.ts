@@ -5,7 +5,7 @@ import { turnLines, turnSummary } from "../../src/game/battle";
 import type { BattleLogEntry } from "../../src/game/apply-event";
 import { battleView } from "../helpers/battle";
 
-const hit: BattleAction = { actor: 1, move: "tackle", moveName: "Placaje", damage: 30, critical: false, effectiveness: 1, healed: 0, actorHp: 100, targetHp: 70, missed: false, blocked: null, notes: [] };
+const hit: BattleAction = { actor: 1, move: "tackle", moveName: "Placaje", moveType: "normal", damage: 30, critical: false, effectiveness: 1, healed: 0, actorHp: 100, targetHp: 70, missed: false, blocked: null, notes: [] };
 const entry = (over: Partial<BattleLogEntry> = {}): BattleLogEntry => ({ round: 1, turn: 1, actions: [hit], names: { 1: "Uno", 2: "Cuatro" }, entered: [], switches: [], before: battleView(), roundNotes: [], roundNames: { 1: "Uno", 2: "Cuatro" }, entryNotes: [], endNotes: [], abilityNames: {}, ...over });
 
 describe("los pasos compartidos del turno", () => {
@@ -92,5 +92,37 @@ describe("los cuadros presentados", () => {
     const frames = buildBattleFrames(turn.before!, turn, 2);
     expect(frames[1]!.battle.myTeam[0]!.hp).toBe(100);
     expect(frames[1]!.battle.rivalTeam[0]!.hp).toBe(60);
+  });
+});
+
+describe("el efecto de ataque de cada cuadro (#42)", () => {
+  const projectiles = (turn: BattleLogEntry, seat: 1 | 2 = 1) => buildBattleFrames(turn.before!, turn, seat).map((frame) => frame.projectile ?? null);
+
+  it("un golpe lanza el efecto de su tipo desde el atacante, solo en el impacto", () => {
+    const turn = entry({ actions: [{ ...hit, moveType: "fire" }] });
+    expect(projectiles(turn)).toEqual([null, { type: "fire", from: "left" }, null]);
+    expect(projectiles(turn, 2)).toEqual([null, { type: "fire", from: "right" }, null]);
+  });
+
+  it("Forcejeo, sin tipo, usa el genérico", () => {
+    expect(projectiles(entry({ actions: [{ ...hit, moveType: null }] }))[1]).toEqual({ type: null, from: "left" });
+  });
+
+  it.each([{ missed: true }, { blocked: "sleep" as const }, { effectiveness: 0 }])("sin efecto si no llegó: %j", (over) => {
+    expect(projectiles(entry({ actions: [{ ...hit, ...over }] })).every((one) => one === null)).toBe(true);
+  });
+
+  it("un movimiento de estado o que baja stats va hacia el rival con su tipo", () => {
+    const wave = { ...hit, moveType: "electric" as const, damage: 0, notes: [{ kind: "status" as const, seat: 2 as const, status: "paralysis" as const }] };
+    expect(projectiles(entry({ actions: [wave] }))[0]).toEqual({ type: "electric", from: "left" });
+    const growl = { ...hit, actor: 2 as const, damage: 0, notes: [{ kind: "stat" as const, seat: 1 as const, stat: "attack" as const, change: -1 }] };
+    expect(projectiles(entry({ actions: [growl] }))[0]).toEqual({ type: "normal", from: "right" });
+  });
+
+  it("curarse o subir sus stats se queda en el propio Pokémon, sin efecto hacia el rival", () => {
+    const heal = { ...hit, damage: 0, healed: 20, notes: [] };
+    const swords = { ...hit, damage: 0, notes: [{ kind: "stat" as const, seat: 1 as const, stat: "attack" as const, change: 2 }] };
+    const failed = { ...hit, damage: 0, notes: [{ kind: "no_effect" as const, seat: 2 as const }] };
+    for (const action of [heal, swords, failed]) expect(projectiles(entry({ actions: [action] })).every((one) => one === null)).toBe(true);
   });
 });

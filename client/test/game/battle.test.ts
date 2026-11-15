@@ -4,7 +4,7 @@ import { battleSpriteUrl, battleStillUrl } from "../../src/catalog/artwork";
 import { aliveIds, effectivenessLabel, hpTone, turnLines, turnSummary } from "../../src/game/battle";
 
 const fighter = (id: number, hp: number, maxHp = 100): BattleFighterView => ({ pokemon: { id } as never, hp, maxHp, ability: null, status: null, stages: {} });
-const action = (over: Partial<BattleAction> = {}): BattleAction => ({ actor: 1, move: "flamethrower", moveName: "Lanzallamas", damage: 42, critical: false, effectiveness: 1, healed: 0, actorHp: 100, targetHp: 58, missed: false, blocked: null, notes: [], ...over });
+const action = (over: Partial<BattleAction> = {}): BattleAction => ({ actor: 1, move: "flamethrower", moveName: "Lanzallamas", moveType: "fire", damage: 42, critical: false, effectiveness: 1, healed: 0, actorHp: 100, targetHp: 58, missed: false, blocked: null, notes: [], ...over });
 const names = { 1: "Charizard", 2: "Mewtwo" };
 
 describe("hpTone", () => {
