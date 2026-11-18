@@ -24,7 +24,8 @@ export interface GameClientApi {
   stillHere(turnId: number): void;
   /** Ya vi la revelación. */
   ready(): void;
-  lineup(order: number[]): void;
+  /** Con `draft`, solo guarda el orden a medias (#56). */
+  lineup(order: number[], draft?: boolean): void;
   move(move: BattleMove): void;
   switchTo(pokemonId: number): void;
   /** Sale de la sala: cancela la espera o abandona la partida. */
@@ -125,8 +126,8 @@ export class GameClient implements GameClientApi {
     this.socket?.emit("auction-ready");
   }
 
-  lineup(order: number[]): void {
-    this.socket?.emit("auction-lineup", { order });
+  lineup(order: number[], draft?: boolean): void {
+    this.socket?.emit("auction-lineup", draft ? { order, draft } : { order });
   }
 
   move(move: BattleMove): void {

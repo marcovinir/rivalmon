@@ -56,6 +56,15 @@ function fighterView(fighter: Fighter, catalog: PokemonCatalog): BattleFighterVi
   return { pokemon: toPokemonView(catalog.get(fighter.pokemon.id)!), hp: fighter.hp, maxHp: fighter.maxHp, ability: abilityView(fighter.ability), status: fighter.status, stages };
 }
 
+/** Un Pokémon de mi equipo, con sus 4 ataques y los PP que les quedan (#56). La eficacia depende del rival: aquí no va. */
+function myFighterView(fighter: Fighter, catalog: PokemonCatalog): BattleFighterView {
+  const moves = fighter.moves.map(({ id, pp }): BattleMoveView => {
+    const move = moveData(id)!;
+    return { move: id, name: move.names.es, type: move.type, category: move.category, power: move.power, accuracy: move.accuracy, pp, maxPp: move.pp, effectiveness: null, effect: effectText(id) };
+  });
+  return { ...fighterView(fighter, catalog), moves };
+}
+
 /** El combate para un jugador: de lo que el rival está decidiendo no va nada, ni si ya decidió. */
 function battleView(state: AuctionState, seat: Seat, catalog: PokemonCatalog): BattleView | undefined {
   const battle = state.battle;
@@ -84,13 +93,14 @@ function battleView(state: AuctionState, seat: Seat, catalog: PokemonCatalog): B
     rivalIdle: deciding && chosen && !(battle.replacing.length > 0 && !rivalReplacing) && battle.idle[rival].warningUntil !== null,
     confirmed,
     myLineup: state.phase === "lineup" ? structuredClone(battle.lineups[seat] ?? null) : null,
+    myLineupDraft: state.phase === "lineup" ? structuredClone(battle.lineupDrafts[seat] ?? null) : null,
     myMove: battle.moves[seat] ?? null,
     mySwitch: battle.switches[seat] ?? null,
     mustReplace,
     rivalReplacing,
     myReplacement: mustReplace ? battle.replacements[seat] ?? null : null,
     calmTurns: battle.calmTurns,
-    myTeam: battle.fighters[seat].map((fighter) => fighterView(fighter, catalog)),
+    myTeam: battle.fighters[seat].map((fighter) => myFighterView(fighter, catalog)),
     // En orden de compra: su alineación diría quién es su reserva.
     rivalTeam: state.teams[rival].map((id) => fighterView(battle.fighters[rival].find((fighter) => fighter.pokemon.id === id)!, catalog)),
     myTitular: mineId,

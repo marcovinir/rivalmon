@@ -4,12 +4,13 @@ import { typeChipStyle } from "../theme/type-styles";
 import { TypeIcon } from "./TypeIcon";
 
 const SIZES = {
+  sm: "px-2 py-0 text-xs",
   md: "px-3 py-0.5 text-sm",
   lg: "px-5 py-1.5 text-lg",
 } as const;
 
 /** El lado del icono en cada tamaño de chip. */
-const ICON_SIZES = { md: 14, lg: 18 } as const;
+const ICON_SIZES = { sm: 11, md: 14, lg: 18 } as const;
 
 /** El nombre de un tipo sobre su color, con relieve (un degradado y un filo oscuro abajo) y, a la izquierda, su icono oficial. */
 export function TypeChip({

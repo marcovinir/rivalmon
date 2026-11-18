@@ -125,6 +125,8 @@ Al entrar se llega al **menú principal** («¿A qué jugamos?»), con una tarje
 
 Al terminar la puja, los 12 Pokémon aparecen en orden de compra: el primero al empezar y otro cada **1,5 s**, durante **18 s** en total. El sonido de cada silueta trampa coincide con su aparición. Si los dos pulsan **«Listo»**, se pasa a la alineación antes de que venza el plazo. Al recargar se conserva la revelación, su plazo y la confirmación de cada jugador; el cliente calcula cuántos Pokémon mostrar a partir del plazo del servidor.
 
+
+**Alineación (#56).** Dura **45 s**. Cada Pokémon propio se muestra con su imagen, tipos, habilidad, sus 4 ataques con PP y sus estadísticas; el orden se elige tocándolos en el orden deseado (cada uno recibe su número, y tocarlo otra vez se lo quita). Cada toque guarda un borrador privado: sobrevive a recargar y, si se acaba el tiempo, los numerados salen primero y los demás detrás, en orden de compra. «Confirmar orden» pide los 6 numerados y se queda pegado abajo en el móvil. Del rival solo se ve imagen, nombre, PS y tipos: sus ataques nunca viajan en la vista (solo `myTeam` lleva `moves`).
 ## Subasta Pokémon: presentación del combate
 
 El resultado de cada turno se presenta en orden: notas iniciales, cambios, efectos de entrada, acciones y sus efectos, y daño de estado al final. Un texto breve sobre el escenario explica qué pasa; los estados y las subidas o bajadas de stats se señalan sobre el Pokémon afectado. Un fallo, bloqueo, inmunidad o movimiento sin daño no provoca una embestida ficticia.
@@ -257,7 +259,7 @@ Se conecta a `http://localhost:3000` con `auth: { token: <accessToken> }`. Un to
 | `auction-pass` | Subasta: `{ turnId }`: retirarse del lote abierto; es definitivo |
 | `auction-still-here` | Subasta: `{ turnId }`: responder al aviso «¿Sigues ahí?»; en el combate, `turnId` es el `stepId` de su estado |
 | `auction-ready` | Subasta: ya vi la revelación; si confirman los dos, se salta |
-| `auction-lineup` | Subasta: `{ order }`: titular y orden |
+| `auction-lineup` | Subasta: `{ order }`: titular y orden, con los 6. Con `draft: true`, el orden a medias: no confirma, solo se guarda (privado) para recargar y, si se acaba el tiempo, los numerados salen primero |
 | `auction-move` | Subasta: `{ move }`: el identificador de uno de sus 4 movimientos con PP, o `forcejeo` si no le quedan. No tiene reloj: a los 60 s sale el aviso «¿Sigues ahí?» |
 | `auction-switch` | Subasta: `{ pokemonId }`: cambiar de Pokémon; gasta el turno y el cambio va antes que los ataques. Si se te debilitó el titular, es elegir al siguiente: un Pokémon tuyo y vivo, sin gastar turno |
 | `rematch-request` | — (pedir la revancha o aceptar la del rival) |

@@ -108,7 +108,7 @@ export function reduceAuction(prev: AuctionState, event: GameEvent, now: number,
       onReady(c, event.seat);
       break;
     case "CHOOSE_LINEUP":
-      onLineup(c, event.seat, event.order);
+      onLineup(c, event.seat, event.order, event.draft === true);
       break;
     case "CHOOSE_MOVE":
       onMove(c, event.seat, event.move);
@@ -457,6 +457,7 @@ function revealAll(c: Ctx): void {
     round: 0,
     turn: 0,
     lineups: {},
+    lineupDrafts: {},
     moves: {},
     switches: {},
     replacing: [],
@@ -510,10 +511,19 @@ function beginLineup(c: Ctx): void {
   sendStates(c);
 }
 
-function onLineup(c: Ctx, seat: Seat, order: number[]): void {
+function onLineup(c: Ctx, seat: Seat, order: number[], draft: boolean): void {
   const { s } = c;
   if (s.phase !== "lineup") return reject(c, seat, "WRONG_PHASE", "Ahora no se elige la alineación");
   const team = s.teams[seat];
+  if (draft) {
+    if (s.battle!.lineups[seat]) return reject(c, seat, "WRONG_PHASE", "Ya confirmaste tu alineación");
+    const partial = Array.isArray(order) && order.length <= team.length && new Set(order).size === order.length && order.every((id) => team.includes(id));
+    if (!partial) return reject(c, seat, "INVALID_CHOICE", "Esa alineación no es válida");
+    s.battle!.lineupDrafts[seat] = [...order];
+    // Solo a quien numera: el rival no sabe ni que se está ordenando.
+    c.fx.push({ kind: "send_state", to: seat });
+    return;
+  }
   const valid = Array.isArray(order) && order.length === team.length && new Set(order).size === team.length && order.every((id) => team.includes(id));
   if (!valid) return reject(c, seat, "INVALID_CHOICE", "Esa alineación no es válida");
   s.battle!.lineups[seat] = [...order];
@@ -524,7 +534,9 @@ function onLineup(c: Ctx, seat: Seat, order: number[]): void {
 function beginFirstRound(c: Ctx): void {
   const battle = c.s.battle!;
   for (const seat of [1, 2] as const) {
-    const order = battle.lineups[seat] ?? c.s.teams[seat];
+    // Sin confirmar: los numerados primero y los demás detrás, en orden de compra.
+    const draft = battle.lineupDrafts[seat] ?? [];
+    const order = battle.lineups[seat] ?? [...draft, ...c.s.teams[seat].filter((id) => !draft.includes(id))];
     battle.fighters[seat] = order.map((id) => battle.fighters[seat].find((fighter) => fighter.pokemon.id === id)!);
     battle.titular[seat] = order[0]!;
   }

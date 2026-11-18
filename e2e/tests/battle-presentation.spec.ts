@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+import type { TypeName } from "@pokemon-minigames/shared";
 import { newPlayer, guestLogin } from "../support/app";
 import { battlePresentation, presentationBattle, presentationHit } from "../support/battle-presentation";
 
@@ -181,6 +182,53 @@ test("elegir al siguiente cabe a 360, 375 y escritorio, sin K.O. y con contraste
       fixture.state({ ...base, choosing: false, moves: [], rivalReplacing: true });
       await expect(page.getByText(`${"b".repeat(30)} está eligiendo a su siguiente Pokémon…`)).toBeVisible();
       await page.screenshot({ path: testInfo.outputPath(`rival-eligiendo-${width}.png`), fullPage: true });
+    }
+  } finally {
+    await player.context.close();
+  }
+});
+
+// #56: la alineación con datos, con los nombres de Pokémon y de ataques más largos que hay.
+test("la alineación cabe a 360, 375 y escritorio con los nombres más largos, y el confirmar se alcanza", async ({ browser }, testInfo) => {
+  test.setTimeout(240_000);
+  const player = await newPlayer(browser, "a".repeat(24));
+  const page = player.page;
+  try {
+    const fixture = await battlePresentation(page);
+    await guestLogin(page, player.name);
+    await page.goto("/sala/ABC234");
+    await expect(page.getByRole("meter", { name: "PS de Bulbasaur" })).toBeVisible();
+    const longest: [number, string][] = [[740, "Crabominable"], [931, "Squawkabilly"], [947, "Brambleghast"], [994, "Ferropolilla"], [1006, "Ferropaladín"], [1012, "Poltchageist"]];
+    const moveNames = ["Tormenta de Diamantes", "Arenas Ardientes", "Cañón Resplandor", "Cabeza de Hierro"];
+    const base = presentationBattle();
+    const team = longest.map(([id, name]) => ({
+      ...base.myTeam[0]!,
+      pokemon: { ...base.myTeam[0]!.pokemon, id, names: { es: name, en: name }, types: ["steel", "fairy"] as TypeName[] },
+      ability: { id: "intimidate", name: "Intimidación", description: "Baja el Ataque del rival al salir.", active: true },
+      moves: moveNames.map((name, index) => ({ move: `m-${index}`, name, type: (["rock", "ground", "steel", "steel"] as const)[index]!, category: "physical" as const, power: 100, accuracy: 100, pp: 5, maxPp: 5, effectiveness: null, effect: null })),
+    }));
+    const rivals = longest.map(([id, name]) => ({ ...base.rivalTeam[0]!, pokemon: { ...base.rivalTeam[0]!.pokemon, id: id + 1, names: { es: name, en: name } } }));
+    for (const width of [360, 375, 1280]) {
+      await page.setViewportSize({ width, height: width < 1000 ? 760 : 900 });
+      fixture.state({ ...base, round: 0, turn: 0, choosing: false, moves: [], myTitular: null, rivalTitular: null, deadline: Date.now() + 45_000, myTeam: team, rivalTeam: rivals }, "lineup");
+      await expect(page.getByRole("heading", { name: "Elige tu alineación" })).toBeVisible();
+      await page.waitForTimeout(400);
+      for (const box of await Promise.all((await page.locator("button.lineup-card, ul[aria-label='Equipo rival'] li").all()).map((one) => one.boundingBox()))) {
+        expect(box!.x).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+      // El botón de confirmar se queda pegado abajo: se alcanza sin bajar hasta el final.
+      const confirm = await page.getByRole("button", { name: /^Confirmar orden/ }).boundingBox();
+      expect(confirm!.y + confirm!.height, "el confirmar se ve sin desplazar").toBeLessThanOrEqual(width < 1000 ? 760 : 900);
+      await page.locator("button.lineup-card").first().click();
+      await page.addScriptTag({ content: readFileSync(new URL("../../client/scripts/contrast-audit.js", import.meta.url), "utf8") });
+      const report = await page.evaluate(() => (window as unknown as { __contrastAuditAll(): Promise<Record<string, string[]>> }).__contrastAuditAll());
+      expect(report).toEqual({ "clasico/claro": [], "clasico/oscuro": [], "pokedex/claro": [], "pokedex/oscuro": [] });
+      for (const theme of ["clasico", "pokedex"]) for (const mode of ["claro", "oscuro"]) {
+        await page.evaluate(({ theme, mode }) => { document.documentElement.dataset.theme = theme; document.documentElement.dataset.mode = mode; window.scrollTo(0, 0); }, { theme, mode });
+        await page.screenshot({ path: testInfo.outputPath(`alineacion-${width}-${theme}-${mode}.png`), fullPage: true });
+      }
     }
   } finally {
     await player.context.close();

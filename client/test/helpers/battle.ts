@@ -18,6 +18,7 @@ export const battleView = (over: Partial<BattleView> = {}): BattleView => ({
   rivalIdle: false,
   confirmed: false,
   myLineup: null,
+  myLineupDraft: null,
   myMove: null,
   mySwitch: null,
   mustReplace: false,

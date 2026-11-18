@@ -511,6 +511,76 @@ body::before {
     transform: translateY(18%);
   }
 }
+/* La alineación (#56): cada Pokémon es una tarjeta que se toca para darle número. */
+.lineup-card {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border: 2px solid transparent;
+  border-radius: var(--radius-card, 0.75rem);
+  background: var(--color-surface);
+  color: inherit;
+  padding: 0.5rem;
+  text-align: left;
+  cursor: pointer;
+}
+.lineup-card[aria-pressed="true"] {
+  border-color: #ffcb05;
+}
+.lineup-card:disabled {
+  cursor: default;
+}
+.lineup-number {
+  display: flex;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed currentColor;
+  border-radius: 9999px;
+  font-family: var(--font-num);
+  font-weight: 700;
+}
+.lineup-card[aria-pressed="true"] .lineup-number {
+  border: 2px solid #ffcb05;
+  background: #ffcb05;
+  color: #1b1147;
+}
+.lineup-titular {
+  border-radius: 9999px;
+  background: #ffcb05;
+  color: #1b1147;
+  padding: 0 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+}
+.lineup-stat {
+  display: block;
+  height: 0.25rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+.lineup-stat > span {
+  display: block;
+  height: 100%;
+  border-radius: 9999px;
+  background: #3fae6a;
+}
+/* El botón de confirmar queda a mano en el móvil: se pega abajo mientras se recorre la lista. */
+.lineup-confirm {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  /* Opaco: el botón desactivado es translúcido y, encima de una tarjeta, dejaría ver su texto. */
+  border-radius: var(--radius-card, 0.75rem) var(--radius-card, 0.75rem) 0 0;
+  background: var(--color-surface);
+  padding: 0.5rem;
+  box-shadow: 0 -2px 8px rgb(0 0 0 / 0.15);
+}
 /* Elegir al siguiente: el sprite, el nombre y los PS, en botones grandes que se tocan bien en el móvil. */
 .battle-replacement {
   display: flex;
