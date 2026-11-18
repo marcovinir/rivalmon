@@ -47,7 +47,7 @@ function moveViews(mine: Fighter, rival: Fighter | undefined): BattleMoveView[] 
       maxPp: move.pp,
       effectiveness: rival && move.category !== "status" ? moveEffectiveness(id, rival) : null,
       effect: effectText(id),
-      description: id === STRUGGLE ? null : getMoveBook().descriptions[id] ?? null,
+      description: id === STRUGGLE ? null : getMoveBook().descriptions?.[id] ?? null,
     };
   });
 }
@@ -70,7 +70,7 @@ function rivalFighterView(fighter: Fighter, catalog: PokemonCatalog): BattleFigh
 function myFighterView(fighter: Fighter, catalog: PokemonCatalog): BattleFighterView {
   const moves = fighter.moves.map(({ id, pp }): BattleMoveView => {
     const move = moveData(id)!;
-    return { move: id, name: move.names.es, type: move.type, category: move.category, power: move.power, accuracy: move.accuracy, pp, maxPp: move.pp, effectiveness: null, effect: effectText(id), description: getMoveBook().descriptions[id] ?? null };
+    return { move: id, name: move.names.es, type: move.type, category: move.category, power: move.power, accuracy: move.accuracy, pp, maxPp: move.pp, effectiveness: null, effect: effectText(id), description: getMoveBook().descriptions?.[id] ?? null };
   });
   return { ...fighterView(fighter, catalog), moves };
 }

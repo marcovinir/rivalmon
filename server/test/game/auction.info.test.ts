@@ -24,14 +24,19 @@ const battle = (h: AuctionHarness, seat: Seat) => h.view(seat).auction!.battle!;
 const titular = (h: AuctionHarness, seat: Seat) => h.state.battle!.fighters[seat].find((one) => one.pokemon.id === h.state.battle!.titular[seat])!;
 
 describe("la descripción de los ataques", () => {
+  it("volver a generar los movimientos conserva las descripciones", () => {
+    const script = readFileSync(new URL("../../scripts/fetch-moves.ts", import.meta.url), "utf8");
+    expect(script).toMatch(/descriptions/);
+  });
+
   it("todos los movimientos de la instantánea tienen la suya en español", () => {
     const book = getMoveBook();
-    for (const id of Object.keys(book.moves)) expect(book.descriptions[id], id).toMatch(/\S/);
+    for (const id of Object.keys(book.moves)) expect(book.descriptions?.[id], id).toMatch(/\S/);
   });
 
   it("los botones y mi equipo la traen", () => {
     const h = toBattle();
-    for (const move of battle(h, 1).moves) expect(move.description).toBe(getMoveBook().descriptions[move.move]);
+    for (const move of battle(h, 1).moves) expect(move.description).toBe(getMoveBook().descriptions?.[move.move]);
     for (const one of battle(h, 1).myTeam) for (const move of one.moves!) expect(move.description).toMatch(/\S/);
   });
 });

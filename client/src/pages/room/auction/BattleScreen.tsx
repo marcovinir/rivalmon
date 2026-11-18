@@ -46,16 +46,23 @@ export function BattleScreen() {
     return () => document.removeEventListener("pointerdown", close);
   }, [tip]);
   const choosing = battle?.choosing ?? false;
-  useEffect(() => {
-    if (!choosing) setMoveTip(null);
-  }, [choosing]);
+  const moveTurn = choosing ? `${battle?.round}-${battle?.turn}` : null;
+  useEffect(() => setMoveTip(null), [moveTurn]);
   useEffect(() => {
     if (moveTip === null) return;
-    const close = (event: KeyboardEvent) => {
+    const closeByKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setMoveTip(null);
     };
-    document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
+    // En el móvil no hay cursor que se vaya: tocar fuera de los botones la cierra.
+    const closeByTouch = (event: PointerEvent) => {
+      if (!(event.target as Element | null)?.closest?.(".battle-move-slot")) setMoveTip(null);
+    };
+    document.addEventListener("keydown", closeByKey);
+    document.addEventListener("pointerdown", closeByTouch);
+    return () => {
+      document.removeEventListener("keydown", closeByKey);
+      document.removeEventListener("pointerdown", closeByTouch);
+    };
   }, [moveTip]);
   // Se llega pulsando «Confirmar», más abajo: en el móvil el escenario quedaría cortado.
   useEffect(() => {

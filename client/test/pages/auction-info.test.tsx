@@ -53,6 +53,44 @@ describe("los botones de ataque", () => {
     expect(services.game.client.move).toHaveBeenCalledWith("flamethrower");
   });
 
+  it("un toque en el móvil elige sin abrir la descripción, aunque llegue el ratón de compatibilidad", () => {
+    const services = fakeServices();
+    renderRoom([state()], services);
+    const button = screen.getByRole("button", { name: /^Lanzallamas/ });
+    fireEvent.pointerEnter(button, { pointerType: "touch" });
+    fireEvent.mouseEnter(button);
+    fireEvent.pointerDown(button, { pointerType: "touch" });
+    fireEvent.pointerUp(button, { pointerType: "touch" });
+    fireEvent.click(button);
+    expect(services.game.client.move).toHaveBeenCalledWith("flamethrower");
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("tocar fuera cierra la descripción", async () => {
+    const { user } = renderRoom([state()]);
+    await user.click(screen.getByRole("button", { name: "Descripción de Lanzallamas" }));
+    await user.pointer({ keys: "[MouseLeft]", target: document.body });
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("una pulsación larga que no terminó antes de resolverse el turno no abre nada en el siguiente", () => {
+    vi.useFakeTimers();
+    const services = fakeServices();
+    renderRoom([state()], services);
+    fireEvent.pointerDown(screen.getByRole("button", { name: /^Lanzallamas/ }), { pointerType: "touch" });
+    serverSends(services, state({ choosing: false, moves: [] }));
+    act(() => vi.advanceTimersByTime(600));
+    serverSends(services, state({ turn: 2 }));
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("la «i» abierta describe su botón para el lector de pantalla", async () => {
+    const { user } = renderRoom([state()]);
+    const info = screen.getByRole("button", { name: "Descripción de Lanzallamas" });
+    await user.click(info);
+    expect(info).toHaveAttribute("aria-describedby", screen.getByRole("tooltip").id);
+  });
+
   it("la descripción se cierra al resolverse el turno", async () => {
     const services = fakeServices();
     const { user } = renderRoom([state()], services);

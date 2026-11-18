@@ -465,7 +465,6 @@ export const BATTLE_TEXT = {
   yourLineup: "Tu alineación",
   rivalTeam: "Equipo rival",
   titular: "Titular",
-  confirm: "Confirmar",
   whatDoes: (name: string): string => `¿Qué hace ${name}?`,
   waitingFor: (name: string): string => `Esperando a ${name}…`,
   rivalSlow: (name: string): string => `${name} lleva rato sin elegir…`,

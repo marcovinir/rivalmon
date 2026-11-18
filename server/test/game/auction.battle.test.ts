@@ -104,7 +104,7 @@ describe("revelación y alineación", () => {
     expect(h.state.phase).toBe("reveal");
     h.dispatch({ type: "READY", seat: 2 });
     expect(h.state.phase).toBe("lineup");
-    expect(battle(h, 1).deadline).toBe(h.now + 30_000);
+    expect(battle(h, 1).deadline).toBe(h.now + 45_000);
   });
 
   it("confirmar dos veces la misma persona no salta la revelación", () => {

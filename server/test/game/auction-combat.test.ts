@@ -184,6 +184,8 @@ describe("estados", () => {
     expect(resolveTurn(sides(a, b), { 1: HIT, 2: HIT }, calm).map((one) => one.actor)).toEqual([2, 1]);
     const [blocked] = resolveTurn(sides(a, normal(2)), { 1: HIT, 2: null }, { int: (max) => (max === 4 ? 0 : max - 1) });
     expect(blocked).toMatchObject({ blocked: "paralysis", damage: 0 });
+    // Lo elegido no llegó a usarse: no se publica (#58), o el rival sabría un ataque que aún no vio.
+    expect(blocked).toMatchObject({ move: "", moveName: "", moveType: null });
   });
 
   it("dormido: de 1 a 3 turnos sin actuar, y al despertar actúa", () => {

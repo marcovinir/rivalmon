@@ -516,7 +516,8 @@ function onLineup(c: Ctx, seat: Seat, order: number[], draft: boolean): void {
   if (s.phase !== "lineup") return reject(c, seat, "WRONG_PHASE", "Ahora no se elige la alineación");
   const team = s.teams[seat];
   if (draft) {
-    if (s.battle!.lineups[seat]) return reject(c, seat, "WRONG_PHASE", "Ya confirmaste tu alineación");
+    // Un toque que llega justo después de «Confirmar» no es un error de nadie: vale lo confirmado.
+    if (s.battle!.lineups[seat]) return;
     const partial = Array.isArray(order) && order.length <= team.length && new Set(order).size === order.length && order.every((id) => team.includes(id));
     if (!partial) return reject(c, seat, "INVALID_CHOICE", "Esa alineación no es válida");
     s.battle!.lineupDrafts[seat] = [...order];

@@ -177,7 +177,8 @@ function useMove(id: BattleMove, me: Fighter, rival: Fighter, actor: Seat, rng: 
   const notes: BattleNote[] = [];
   const action: BattleAction = { actor, move: id, moveName: move.names.es, moveType: id === STRUGGLE ? null : move.type, damage: 0, critical: false, effectiveness: 1, healed: 0, actorHp: me.hp, targetHp: rival.hp, missed: false, blocked: blockedBy(me, actor, rng, notes), notes };
   const finish = () => ({ ...action, actorHp: me.hp, targetHp: rival.hp });
-  if (action.blocked) return finish();
+  // No llegó a usarlo: publicarlo diría al rival un ataque que aún no vio (#58).
+  if (action.blocked) return { ...finish(), move: "", moveName: "", moveType: null };
 
   const slot = me.moves.find((one) => one.id === id);
   if (slot) slot.pp--;

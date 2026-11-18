@@ -1,5 +1,5 @@
 import type { BattleFighterView, BattleMove, BattleMoveView } from "@pokemon-minigames/shared";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TypeChip } from "../../../components/TypeChip";
 import { MOVE_COLORS, effectivenessLabel } from "../../../game/battle";
 import { BATTLE_TEXT, TYPE_LABELS } from "../../../i18n/es";
@@ -19,8 +19,8 @@ function moveFacts(one: BattleMoveView): string {
 }
 
 /**
- * Un botón de ataque (#58): el mismo contenido de siempre con un aspecto más moderno. La descripción sale con el cursor,
- * con el foco, al mantener pulsado en el móvil o con su «i»; un toque normal sigue eligiendo el ataque.
+ * Un botón de ataque (#58): el mismo contenido de siempre con un aspecto más moderno. La descripción sale con el cursor
+ * (solo un ratón de verdad: tras un toque, el móvil simula uno), al mantener pulsado o con su «i»; un toque normal elige.
  */
 export function MoveButton({ move, pressed, tipOpen, tipId, onChoose, onTip }: { move: BattleMoveView; pressed: boolean; tipOpen: boolean; tipId: string; onChoose(): void; onTip(open: boolean | "toggle"): void }) {
   const [color, edge] = MOVE_COLORS[move.type ?? "forcejeo"];
@@ -30,6 +30,8 @@ export function MoveButton({ move, pressed, tipOpen, tipId, onChoose, onTip }: {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
   };
+  // Si el turno se resuelve con el dedo aún pulsado, el temporizador no debe abrir nada en el turno siguiente.
+  useEffect(() => cancel, []);
   return (
     <div className="battle-move-slot">
       <button
@@ -39,8 +41,16 @@ export function MoveButton({ move, pressed, tipOpen, tipId, onChoose, onTip }: {
         aria-pressed={pressed}
         aria-describedby={tipOpen ? tipId : undefined}
         disabled={move.pp <= 0}
-        onMouseEnter={() => onTip(true)}
-        onMouseLeave={() => onTip(false)}
+        onPointerEnter={(event) => {
+          if (event.pointerType === "mouse") onTip(true);
+        }}
+        onPointerLeave={(event) => {
+          if (event.pointerType === "mouse") onTip(false);
+          cancel();
+        }}
+        onKeyDown={() => {
+          longPressed.current = false;
+        }}
         onPointerDown={(event) => {
           if (event.pointerType === "mouse") return;
           longPressed.current = false;
@@ -51,7 +61,6 @@ export function MoveButton({ move, pressed, tipOpen, tipId, onChoose, onTip }: {
           }, LONG_PRESS_MS);
         }}
         onPointerUp={cancel}
-        onPointerLeave={cancel}
         onContextMenu={(event) => event.preventDefault()}
         onClick={() => {
           // Tras mantener pulsado, soltar no elige el ataque: solo se quería leer su descripción.
@@ -69,7 +78,7 @@ export function MoveButton({ move, pressed, tipOpen, tipId, onChoose, onTip }: {
         {move.type === null ? null : <span className="battle-move-pp">{BATTLE_TEXT.ppOf(move.pp, move.maxPp)}</span>}
       </button>
       {move.description ? (
-        <button type="button" className="battle-move-info" aria-label={BATTLE_TEXT.moveInfo(move.name)} aria-expanded={tipOpen} onClick={() => onTip("toggle")}>
+        <button type="button" className="battle-move-info" aria-label={BATTLE_TEXT.moveInfo(move.name)} aria-expanded={tipOpen} aria-describedby={tipOpen ? tipId : undefined} onClick={() => onTip("toggle")}>
           i
         </button>
       ) : null}

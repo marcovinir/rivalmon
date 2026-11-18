@@ -90,6 +90,15 @@ describe("el borrador del orden", () => {
     expect(battle(h, 1).myLineupDraft).toBeNull();
   });
 
+  it("un borrador que llega justo después de confirmar se ignora sin error", () => {
+    const h = toLineup();
+    const team = [...h.state.teams[1]];
+    h.dispatch({ type: "CHOOSE_LINEUP", seat: 1, order: team });
+    h.dispatch({ type: "CHOOSE_LINEUP", seat: 1, order: [team[2]!], draft: true });
+    expect(h.errorCodes(1)).toEqual([]);
+    expect(battle(h, 1).myLineup).toEqual(team);
+  });
+
   it("un borrador vacío quita todos los números", () => {
     const h = toLineup();
     h.dispatch({ type: "CHOOSE_LINEUP", seat: 1, order: [h.state.teams[1][2]!], draft: true });
