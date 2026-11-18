@@ -25,7 +25,7 @@ const chooseSchema = z.object({ type: z.string().min(1).max(30) });
 const submitSchema = z.object({ text: z.string().max(MAX_ANSWER_LENGTH) });
 const bidSchema = z.object({ step: z.custom<BidStep | null>((value) => value === null || BID_STEPS.includes(value as BidStep)), turnId: z.number().int() });
 const passSchema = z.object({ turnId: z.number().int() });
-const lineupSchema = z.strictObject({ order: z.array(z.number().int()).max(6) });
+const lineupSchema = z.strictObject({ order: z.array(z.number().int()).max(6), draft: z.boolean().optional() });
 const moveSchema = z.strictObject({ move: z.string().min(1).max(40) });
 const switchSchema = z.strictObject({ pokemonId: z.number().int() });
 const stillHereSchema = z.strictObject({ turnId: z.number().int() });
@@ -176,9 +176,9 @@ function registerHandlers(socket: GameSocket, deps: RealtimeDeps): void {
 
   socket.on(
     "auction-lineup",
-    handle(lineupSchema, ({ order }) => {
+    handle(lineupSchema, ({ order, draft }) => {
       const { room, seat } = requireBinding();
-      room.dispatch({ type: "CHOOSE_LINEUP", seat, order });
+      room.dispatch({ type: "CHOOSE_LINEUP", seat, order, draft });
     }),
   );
 

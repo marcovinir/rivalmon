@@ -76,7 +76,8 @@ En desarrollo el servidor de Vite hace de proxy de `/auth`, `/rooms`, `/pokemon`
 | `npm run build` | Construye el cliente (`client/dist`) y empaqueta el servidor (`server/dist/index.js`) |
 | `npm start` | Arranca la construcción de producción (necesita las variables de `NODE_ENV=production`, ver la guía de despliegue) |
 | `npm run auction:simulate -w server` | Simula miles de partidas de Subasta Pokémon entre estrategias e informa del balance |
-| `npm run moves:fetch -w server` | Regenera `server/data/moves.snapshot.json`: los 4 movimientos y la habilidad de cada Pokémon, a partir de PokéAPI |
+| `npm run moves:fetch -w server` | Regenera `server/data/moves.snapshot.json`: los 4 movimientos y la habilidad de cada Pokémon, a partir de PokéAPI. Conserva las descripciones de los movimientos que siguen y avisa si faltan |
+| `npm run moves:descriptions -w server` | Añade a esa instantánea la descripción oficial en español de cada movimiento (#58), sin tocar los movimientos ni los equipos |
 | `npm run e2e` | Construye y ejecuta las pruebas E2E (una partida completa, recargar en plena ronda, el modo invitado, la revancha, el límite de login, el tema y, en un navegador real, el diseño en móvil, el foco del teclado, el movimiento, las tipografías y el pulido de la partida: iconos de tipo, sugerencias con y sin pistas, el ejemplo tras la ronda y el equipo del rival): crea su propia base de datos, la borra al terminar |
 | `npm test` | Todas las pruebas: servidor (usan la base `pokemon_minigames_test`) y cliente |
 | `npm run typecheck` | Verifica los tipos con `tsc` en todos los paquetes |
@@ -125,6 +126,10 @@ Al entrar se llega al **menú principal** («¿A qué jugamos?»), con una tarje
 
 Al terminar la puja, los 12 Pokémon aparecen en orden de compra: el primero al empezar y otro cada **1,5 s**, durante **18 s** en total. El sonido de cada silueta trampa coincide con su aparición. Si los dos pulsan **«Listo»**, se pasa a la alineación antes de que venza el plazo. Al recargar se conserva la revelación, su plazo y la confirmación de cada jugador; el cliente calcula cuántos Pokémon mostrar a partir del plazo del servidor.
 
+
+**Alineación (#56).** Dura **45 s**. Cada Pokémon propio se muestra con su imagen, tipos, habilidad, sus 4 ataques con PP y sus estadísticas; el orden se elige tocándolos en el orden deseado (cada uno recibe su número, y tocarlo otra vez se lo quita). Al dejar de tocar (400 ms después del último toque; tocar seguido mandaría un mensaje por toque y chocaría con el límite de 5 por segundo) se guarda un borrador privado: sobrevive a recargar y, si se acaba el tiempo, los numerados salen primero y los demás detrás, en orden de compra. «Confirmar orden» pide los 6 numerados y se queda pegado abajo en el móvil. Del rival solo se ve imagen, nombre, PS y tipos: en la alineación no viaja ninguno de sus ataques (solo `myTeam` lleva `moves`).
+
+**Botones y fichas del combate (#58).** Los botones de ataque llevan el color de su tipo, el nombre grande y los PP. Su descripción oficial (`BattleMoveView.description`, de la instantánea) sale encima de los botones con el cursor, al mantener pulsado en el móvil (un toque normal sigue eligiendo) o con su «i», que también sirve con el teclado; se cierra con Escape, al tocar fuera o al resolverse el turno, y añade «En Rivalmon: …» con lo que hace en este juego. Cada Pokémon tiene ficha al pasar el cursor, al enfocarlo o al tocarlo: el mío con tipos, habilidad y ataques con PP; el del rival, como en Showdown, con sus tipos, su habilidad y solo los ataques que ya usó y los PP que gastó (`revealedMoves`, calculado de los PP gastados), más cuántos le quedan sin revelar. «Ver tipos y ataques» despliega los de todo mi equipo. Si un Pokémon no puede moverse (dormido o paralizado), su acción se publica sin el ataque elegido: el rival no lo ha visto.
 ## Subasta Pokémon: presentación del combate
 
 El resultado de cada turno se presenta en orden: notas iniciales, cambios, efectos de entrada, acciones y sus efectos, y daño de estado al final. Un texto breve sobre el escenario explica qué pasa; los estados y las subidas o bajadas de stats se señalan sobre el Pokémon afectado. Un fallo, bloqueo, inmunidad o movimiento sin daño no provoca una embestida ficticia.
@@ -257,7 +262,7 @@ Se conecta a `http://localhost:3000` con `auth: { token: <accessToken> }`. Un to
 | `auction-pass` | Subasta: `{ turnId }`: retirarse del lote abierto; es definitivo |
 | `auction-still-here` | Subasta: `{ turnId }`: responder al aviso «¿Sigues ahí?»; en el combate, `turnId` es el `stepId` de su estado |
 | `auction-ready` | Subasta: ya vi la revelación; si confirman los dos, se salta |
-| `auction-lineup` | Subasta: `{ order }`: titular y orden |
+| `auction-lineup` | Subasta: `{ order }`: titular y orden, con los 6. Con `draft: true`, el orden a medias: no confirma, solo se guarda (privado) para recargar y, si se acaba el tiempo, los numerados salen primero |
 | `auction-move` | Subasta: `{ move }`: el identificador de uno de sus 4 movimientos con PP, o `forcejeo` si no le quedan. No tiene reloj: a los 60 s sale el aviso «¿Sigues ahí?» |
 | `auction-switch` | Subasta: `{ pokemonId }`: cambiar de Pokémon; gasta el turno y el cambio va antes que los ataques. Si se te debilitó el titular, es elegir al siguiente: un Pokémon tuyo y vivo, sin gastar turno |
 | `rematch-request` | — (pedir la revancha o aceptar la del rival) |

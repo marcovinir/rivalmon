@@ -7,9 +7,9 @@ const fighter = (id: number, name: string): BattleFighterView => ({
 });
 
 export function presentationBattle(over: Partial<BattleView> = {}): BattleView {
-  return { round: 1, turn: 1, scene: "bosque", deadline: null, choosing: true, stepId: 1, warningUntil: null, rivalIdle: false, confirmed: false, myLineup: null, myMove: null, mySwitch: null, mustReplace: false, rivalReplacing: false, myReplacement: null, calmTurns: 0,
+  return { round: 1, turn: 1, scene: "bosque", deadline: null, choosing: true, stepId: 1, warningUntil: null, rivalIdle: false, confirmed: false, myLineup: null, myLineupDraft: null, myMove: null, mySwitch: null, mustReplace: false, rivalReplacing: false, myReplacement: null, calmTurns: 0,
     myTeam: [fighter(1, "Bulbasaur"), fighter(25, "Pikachu"), fighter(7, "Squirtle"), fighter(4, "Charmander"), fighter(39, "Jigglypuff"), fighter(52, "Meowth")], rivalTeam: [fighter(6, "Charizard")], myTitular: 1, rivalTitular: 6,
-    moves: ["Placaje", "Hoja Afilada", "Recuperación", "Desarrollo"].map((name, index) => ({ move: `move-${index}`, name, type: "normal", category: "physical", power: 40, accuracy: 100, pp: 10, maxPp: 35, effectiveness: 1, effect: null })), ...over };
+    moves: ["Placaje", "Hoja Afilada", "Recuperación", "Desarrollo"].map((name, index) => ({ move: `move-${index}`, name, type: "normal", category: "physical", power: 40, accuracy: 100, pp: 10, maxPp: 35, effectiveness: 1, effect: null, description: null })), ...over };
 }
 
 export const presentationHit = (over: Partial<BattleAction> = {}): BattleAction => ({ actor: 1, move: "tackle", moveName: "Placaje", moveType: "normal", damage: 30, critical: false, effectiveness: 1, healed: 0, actorHp: 100, targetHp: 70, missed: false, blocked: null, notes: [], ...over });
@@ -18,11 +18,12 @@ export const presentationHit = (over: Partial<BattleAction> = {}): BattleAction 
  * Se simula el transporte polling de Socket.io para entregar resultados públicos en un orden conocido. */
 export async function battlePresentation(page: Page) {
   let battle = presentationBattle();
+  let phase: RoomStateView["phase"] = "battle";
   let generation = 0;
   const queue: string[] = [];
   let wake: (() => void) | null = null;
   const send = (event: ServerEvent) => { queue.push(`42${JSON.stringify([event.name, event.payload])}`); wake?.(); };
-  const room = (): RoomStateView => ({ code: "ABC234", serverNow: Date.now(), phase: "battle", config: { game: "subasta", traps: false }, mySeat: 1,
+  const room = (): RoomStateView => ({ code: "ABC234", serverNow: Date.now(), phase, config: { game: "subasta", traps: false }, mySeat: 1,
     players: [{ seat: 1, username: "a".repeat(30), connected: true, totalStats: 0, teamSize: 6 }, { seat: 2, username: "b".repeat(30), connected: true, totalStats: 0, teamSize: 1 }],
     myTeam: [], opponentTeam: [], roundsPlayed: 0, startsAt: null, opponentGraceEndsAt: null, round: null,
     auction: { money: { 1: 0, 2: 0 }, teamSizes: { 1: 6, 2: 1 }, purchases: { 1: [], 2: [] }, lot: null, reveal: [], battle } });
@@ -53,7 +54,8 @@ export async function battlePresentation(page: Page) {
     await route.fulfill({ status: 200, contentType: "text/plain; charset=UTF-8", body }).catch(() => undefined);
   });
   return {
-    state(next: BattleView) { battle = next; send({ name: "room-state", payload: room() }); },
+    /** Con `as`, otra fase de la subasta (la alineación de #56); por defecto, el combate. */
+    state(next: BattleView, as: RoomStateView["phase"] = "battle") { battle = next; phase = as; send({ name: "room-state", payload: room() }); },
     resolve(payload: Extract<ServerEvent, { name: "battle-turn" }>["payload"], final: BattleView) { send({ name: "battle-turn", payload }); battle = final; send({ name: "room-state", payload: room() }); },
     send,
   };

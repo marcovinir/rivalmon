@@ -94,12 +94,22 @@ test("una partida completa: puja, revelación, alineación, combate, resumen y r
   await expect(ash.page.getByRole("button", { name: "Esperando al rival…" })).toBeDisabled();
   await misty.page.getByRole("button", { name: "Listo" }).click();
 
-  // Alineación: uno cambia el orden, y el titular es el que eligió.
+  // Alineación (#56): se numera a cada Pokémon tocándolo. Ash empieza por el último, recarga a medias y conserva el número.
   for (const page of pages) await expect(page.getByRole("heading", { name: "Elige tu alineación" })).toBeVisible({ timeout: 15_000 });
-  const firstUp = ash.page.getByRole("button", { name: /^Subir/ }).nth(1);
-  const newTitular = ((await firstUp.getAttribute("aria-label")) ?? "").replace("Subir ", "");
-  await firstUp.click();
-  for (const page of pages) await page.getByRole("button", { name: "Confirmar" }).click();
+  const cards = (page: Page) => page.locator("button.lineup-card");
+  const count = await cards(ash.page).count();
+  const newTitular = ((await cards(ash.page).nth(count - 1).getAttribute("aria-label")) ?? "").split(",")[0]!;
+  await cards(ash.page).nth(count - 1).click();
+  await expect(cards(ash.page).nth(count - 1)).toHaveAttribute("aria-pressed", "true");
+  // El borrador sale cuando se deja de tocar (400 ms): se recarga después.
+  await ash.page.waitForTimeout(800);
+  await ash.page.reload();
+  await expect(ash.page.getByRole("heading", { name: "Elige tu alineación" })).toBeVisible({ timeout: 30_000 });
+  await expect(cards(ash.page).nth(count - 1)).toHaveAccessibleName(new RegExp(`^${newTitular}, número 1, titular`));
+  for (let index = 0; index < count - 1; index++) await cards(ash.page).nth(index).click();
+  for (let index = 0; index < count; index++) await cards(misty.page).nth(index).click();
+  await expectFits(ash.page, "alineación");
+  for (const page of pages) await page.getByRole("button", { name: /^Confirmar orden/ }).click();
   await expect(ash.page.getByRole("meter", { name: `PS de ${newTitular}` })).toBeVisible({ timeout: 15_000 });
   await expectFits(ash.page, "combate");
 

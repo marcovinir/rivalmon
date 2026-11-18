@@ -278,7 +278,7 @@ describe("el combate", () => {
 
   it("también al tocarlo y con el teclado", async () => {
     const { user } = renderRoom([battleState("battle", abilityTeam)]);
-    await user.click(screen.getByRole("button", { name: "Ver la habilidad de Uno" }));
+    await user.click(screen.getByRole("button", { name: "Ver la ficha de Uno" }));
     expect(screen.getByRole("tooltip")).toHaveTextContent("Mar Llamas");
     await user.tab();
     expect(screen.queryByRole("tooltip")?.textContent ?? "").not.toContain("Mar Llamas");
@@ -295,7 +295,7 @@ describe("el combate", () => {
 
   it("tocar fuera cierra la ficha", async () => {
     const { user } = renderRoom([battleState("battle", abilityTeam)]);
-    await user.click(screen.getByRole("button", { name: "Ver la habilidad de Uno" }));
+    await user.click(screen.getByRole("button", { name: "Ver la ficha de Uno" }));
     await user.pointer({ keys: "[MouseLeft]", target: document.body });
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
@@ -321,10 +321,11 @@ describe("el combate", () => {
     expect(within(container.querySelector("[data-battle-log]") as HTMLElement).getByText("Habilidad de Uno: Mar Llamas.")).toBeInTheDocument();
   });
 
-  it("sin habilidad no sale ficha", async () => {
+  it("sin habilidad la ficha sale igual, con sus tipos (#58)", async () => {
     const { user } = renderRoom([battleState("battle")]);
     await user.hover(screen.getByRole("img", { name: "Uno" }));
-    expect(screen.queryByRole("tooltip")).toBeNull();
+    expect(screen.getByRole("tooltip")).toHaveTextContent(/fuego/i);
+    expect(screen.getByRole("tooltip")).not.toHaveTextContent("Mar Llamas");
   });
 
   it("el registro cuenta los fallos, los bloqueos, los estados, los stats y las habilidades", () => {

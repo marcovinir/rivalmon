@@ -121,7 +121,8 @@ export interface ClientToServerEvents {
   "auction-still-here": (payload: { turnId: number }) => void;
   /** Ya vi la revelación: si confirman los dos, se salta. */
   "auction-ready": () => void;
-  "auction-lineup": (payload: { order: number[] }) => void;
+  /** Con `draft`, el orden a medias: no confirma, solo se guarda para recargar y para cuando se acabe el tiempo. */
+  "auction-lineup": (payload: { order: number[]; draft?: boolean }) => void;
   "auction-move": (payload: { move: BattleMove }) => void;
   "auction-switch": (payload: { pokemonId: number }) => void;
   /** Pedir la revancha o aceptar la que pidió el rival. */

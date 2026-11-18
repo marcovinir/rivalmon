@@ -447,15 +447,93 @@ body::before {
 .battle-status-stage {
   background: #eeecf7;
 }
+/* Los botones de ataque (#58): el color del tipo con un filo más oscuro abajo, el nombre grande y los PP arriba a la derecha. */
+.battle-move-slot {
+  position: relative;
+  min-width: 0;
+}
 .battle-move {
-  min-height: 3.5rem;
-  border-radius: 0.625rem;
+  display: flex;
+  width: 100%;
+  min-height: 4rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.0625rem;
+  border: 0;
+  border-radius: 0.875rem;
   color: #1b1147;
+  padding: 0.5rem 0.625rem 0.625rem;
+  text-align: left;
   font-family: var(--font-display);
   font-weight: 700;
   line-height: 1.15;
-  overflow-wrap: anywhere;
+  /* Solo se parte una palabra si no cabe entera: «Diamantes» no debe quedar «Diamante / s». */
+  overflow-wrap: break-word;
   cursor: pointer;
+  /* Mantener pulsado en el móvil abre la descripción: sin esto saldría el menú de seleccionar texto. */
+  -webkit-touch-callout: none;
+  user-select: none;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+.battle-move:not(:disabled):hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.battle-move-name {
+  padding-right: 3.25rem;
+  font-size: 1rem;
+}
+.battle-move-pp {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.625rem;
+  font-family: var(--font-num);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+/* En escritorio van cuatro en fila: los PP pasan a su propia línea y el nombre usa todo el ancho. */
+@media (min-width: 64rem) {
+  .battle-move-name {
+    padding-right: 0;
+  }
+  .battle-move-pp {
+    position: static;
+    order: 4;
+    padding-right: 1.75rem;
+  }
+}
+/* La «i» abre la descripción sin elegir el ataque: con el teclado y en el móvil. */
+.battle-move-info {
+  position: absolute;
+  right: 0.375rem;
+  bottom: 0.5rem;
+  display: flex;
+  width: 1.5rem;
+  height: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #1b1147;
+  border-radius: 9999px;
+  background: #fff;
+  color: #1b1147;
+  font-family: var(--font-num);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.battle-move-tip {
+  position: absolute;
+  bottom: calc(100% + 0.375rem);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  border-radius: 0.75rem;
+  background: #1b1147;
+  color: #fff;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  pointer-events: none;
 }
 .battle-move[aria-pressed="true"] {
   outline: 3px solid #1b1147;
@@ -510,6 +588,76 @@ body::before {
     filter: grayscale(1);
     transform: translateY(18%);
   }
+}
+/* La alineación (#56): cada Pokémon es una tarjeta que se toca para darle número. */
+.lineup-card {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border: 2px solid transparent;
+  border-radius: var(--radius-card, 0.75rem);
+  background: var(--color-surface);
+  color: inherit;
+  padding: 0.5rem;
+  text-align: left;
+  cursor: pointer;
+}
+.lineup-card[aria-pressed="true"] {
+  border-color: #ffcb05;
+}
+.lineup-card:disabled {
+  cursor: default;
+}
+.lineup-number {
+  display: flex;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed currentColor;
+  border-radius: 9999px;
+  font-family: var(--font-num);
+  font-weight: 700;
+}
+.lineup-card[aria-pressed="true"] .lineup-number {
+  border: 2px solid #ffcb05;
+  background: #ffcb05;
+  color: #1b1147;
+}
+.lineup-titular {
+  border-radius: 9999px;
+  background: #ffcb05;
+  color: #1b1147;
+  padding: 0 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+}
+.lineup-stat {
+  display: block;
+  height: 0.25rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+.lineup-stat > span {
+  display: block;
+  height: 100%;
+  border-radius: 9999px;
+  background: #3fae6a;
+}
+/* El botón de confirmar queda a mano en el móvil: se pega abajo mientras se recorre la lista. */
+.lineup-confirm {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  /* Opaco: el botón desactivado es translúcido y, encima de una tarjeta, dejaría ver su texto. */
+  border-radius: var(--radius-card, 0.75rem) var(--radius-card, 0.75rem) 0 0;
+  background: var(--color-surface);
+  padding: 0.5rem;
+  box-shadow: 0 -2px 8px rgb(0 0 0 / 0.15);
 }
 /* Elegir al siguiente: el sprite, el nombre y los PS, en botones grandes que se tocan bien en el móvil. */
 .battle-replacement {

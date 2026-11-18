@@ -104,7 +104,7 @@ describe("revelación y alineación", () => {
     expect(h.state.phase).toBe("reveal");
     h.dispatch({ type: "READY", seat: 2 });
     expect(h.state.phase).toBe("lineup");
-    expect(battle(h, 1).deadline).toBe(h.now + 30_000);
+    expect(battle(h, 1).deadline).toBe(h.now + 45_000);
   });
 
   it("confirmar dos veces la misma persona no salta la revelación", () => {
@@ -156,9 +156,9 @@ describe("revelación y alineación", () => {
     expect(battle(h, 1).confirmed).toBe(false);
   });
 
-  it("sin confirmar en 30 s queda el orden de compra", () => {
+  it("sin confirmar en 45 s queda el orden de compra", () => {
     const h = toLineup();
-    h.advance(30_000);
+    h.advance(45_000);
     expect(h.state.phase).toBe("battle");
     expect(battle(h, 1).myTitular).toBe(h.state.teams[1][0]);
   });

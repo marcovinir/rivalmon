@@ -27,7 +27,7 @@ export function BattleSprite({ id, name, side, effect, status, fainted = false, 
     <div className={`battle-spot battle-spot-${side} ${status ? `battle-aura battle-aura-${status}` : ""} ${fainted ? "battle-fainted" : ""}`} data-battle-status={status ?? undefined}>
       {/* La entrada va aparte de los golpes: en el mismo nodo, se repetiría al acabar cada uno. */}
       {showsAbility ? (
-        <button type="button" data-ability-sprite aria-label={BATTLE_TEXT.seeAbility(name)} aria-describedby={describedBy} onMouseEnter={() => onAbility?.(true)} onMouseLeave={() => onAbility?.(false)} onFocus={() => onAbility?.(true)} onBlur={() => onAbility?.(false)} onClick={() => onAbility?.(true)} className="battle-enter battle-sprite-button flex-none">
+        <button type="button" data-ability-sprite aria-label={BATTLE_TEXT.seeInfo(name)} aria-describedby={describedBy} onMouseEnter={() => onAbility?.(true)} onMouseLeave={() => onAbility?.(false)} onFocus={() => onAbility?.(true)} onBlur={() => onAbility?.(false)} onClick={() => onAbility?.(true)} className="battle-enter battle-sprite-button flex-none">
           <span className={`block ${effect}`}>{picture}</span>
         </button>
       ) : (
