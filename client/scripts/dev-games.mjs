@@ -103,5 +103,6 @@ for (const outcome of requested) {
 console.log(`
 Para limpiar la base de datos de desarrollo:
 DELETE FROM games WHERE id IN (SELECT game_id FROM game_players WHERE user_id IN (SELECT id FROM users WHERE email IN ('anfitrion_x@example.com', 'rival_y@example.com')));
+DELETE FROM auction_games WHERE id IN (SELECT game_id FROM auction_game_players WHERE user_id IN (SELECT id FROM users WHERE email IN ('anfitrion_x@example.com', 'rival_y@example.com')));
 DELETE FROM users WHERE email IN ('anfitrion_x@example.com', 'rival_y@example.com');`);
 process.exit(0);

@@ -36,6 +36,8 @@ export interface StatsResponse {
   /** Número de Pokédex de su avatar; nulo = iniciales. */
   avatarId: number | null;
   stats: Stats;
+  /** Subasta Pokémon (#40), aparte: lo de Doble tipo no cambia. */
+  auction: AuctionStats;
 }
 
 export interface HistoryEntry {
@@ -57,4 +59,33 @@ export interface HistoryPage {
   games: HistoryEntry[];
   /** Cursor opaco para pedir la página siguiente; nulo en la última. */
   nextCursor: string | null;
+}
+
+/** Subasta Pokémon (#40): solo cuentan las partidas jugadas entre dos cuentas. */
+export interface AuctionStats {
+  played: number;
+  wins: number;
+  losses: number;
+  /** De 0 a 1; nulo si no ha jugado ninguna. */
+  winRate: number | null;
+}
+
+/** Cuántas subastas recientes se muestran en el perfil propio. */
+export const AUCTION_HISTORY_LIMIT = 10;
+
+export interface AuctionHistoryEntry {
+  id: string;
+  /** Fecha de fin, en ISO 8601. */
+  endedAt: string;
+  result: GameResult;
+  reason: GameEndReason;
+  /** El rival con su avatar de hoy; nulo = iniciales. */
+  opponent: { username: string; avatarId: number | null };
+  /** Mi equipo, en orden de compra. */
+  team: number[];
+}
+
+/** Respuesta de `GET /stats/auction/history`. */
+export interface AuctionHistoryResponse {
+  games: AuctionHistoryEntry[];
 }

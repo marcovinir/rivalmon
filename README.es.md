@@ -23,7 +23,7 @@
 | **Subasta Pokémon** | Pujen por Pokémon que solo se ven como silueta (algunas son trampa) y combatan con lo que compren, por turnos y eligiendo en secreto. La revelación muestra uno cada 1,5 s durante 18 s; se salta si los dos pulsan «Listo». |
 | **¿Quién es ese Pokémon?** | Los dos ven la misma silueta y tienen un solo intento. Cuanto antes aciertes, más puntos. Se eligen las generaciones con las que jugar. |
 
-Crea una sala, pásale el código a un amigo y a jugar. Sin cuenta (modo invitado), o con una cuenta para tener perfil, estadísticas, historial y un Pokémon de avatar. Al terminar, pide la **revancha** con la misma configuración.
+Crea una sala, pásale el código a un amigo y a jugar. Sin cuenta (modo invitado), o con una cuenta para tener perfil, estadísticas, historial (de Doble tipo y de Subasta Pokémon) y un Pokémon de avatar. Al terminar, pide la **revancha** con la misma configuración.
 
 | | |
 |---|---|

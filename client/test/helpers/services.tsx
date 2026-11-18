@@ -99,9 +99,10 @@ export function fakeServices(): FakeServices {
     },
     catalog: { names: vi.fn(async () => NAMES), facts: vi.fn(async () => FACTS), dex: vi.fn(async () => []), dexEntry: vi.fn() },
     stats: {
-      mine: vi.fn(async () => ({ username: "ash", avatarId: null, stats: NO_STATS })),
-      forUser: vi.fn(async (username: string) => ({ username, avatarId: null, stats: NO_STATS })),
+      mine: vi.fn(async () => ({ username: "ash", avatarId: null, stats: NO_STATS, auction: { played: 0, wins: 0, losses: 0, winRate: null } })),
+      forUser: vi.fn(async (username: string) => ({ username, avatarId: null, stats: NO_STATS, auction: { played: 0, wins: 0, losses: 0, winRate: null } })),
       history: vi.fn(async () => ({ games: [], nextCursor: null })),
+      auctionHistory: vi.fn(async () => ({ games: [] })),
     },
   };
   const client = {

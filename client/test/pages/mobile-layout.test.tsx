@@ -76,6 +76,7 @@ describe("sin desbordes en pantallas estrechas", () => {
         bestGameScore: 300,
         topPokemon: [{ pokemon: pokemon(6, 534), wins: 1 }],
       },
+      auction: { played: 0, wins: 0, losses: 0, winRate: null },
     }));
     renderWithServices(
       <Routes>
@@ -181,6 +182,7 @@ describe("textos largos y tarjetas sueltas en pantallas estrechas", () => {
         bestGameScore: 300,
         topPokemon: [],
       },
+      auction: { played: 0, wins: 0, losses: 0, winRate: null },
     }));
     renderWithServices(
       <Routes>

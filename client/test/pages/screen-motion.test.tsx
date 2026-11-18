@@ -95,6 +95,7 @@ describe("entrada de cada pantalla", () => {
         bestGameScore: 300,
         topPokemon: [{ pokemon: pokemon(6, 534), wins: 1 }],
       },
+      auction: { played: 0, wins: 0, losses: 0, winRate: null },
     }));
     renderWithServices(
       <Routes>
