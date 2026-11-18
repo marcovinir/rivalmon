@@ -111,7 +111,7 @@ describe("perfil propio", () => {
 
   it("si todavía no ha jugado, lo dice y no muestra cifras vacías", async () => {
     renderAt("/perfil");
-    expect(await screen.findByText("Todavía no has jugado ninguna partida.")).toBeInTheDocument();
+    expect(await screen.findByText("Todavía no has jugado a Doble tipo.")).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Resumen" })).not.toBeInTheDocument();
   });
 
@@ -174,7 +174,7 @@ describe("perfil de otra persona", () => {
 
   it("si todavía no ha jugado, lo dice en tercera persona", async () => {
     renderAt("/jugador/misty");
-    expect(await screen.findByText("Todavía no ha jugado ninguna partida.")).toBeInTheDocument();
+    expect(await screen.findByText("Todavía no ha jugado a Doble tipo.")).toBeInTheDocument();
   });
 
   it("un jugador que no existe se explica y lleva de vuelta al lobby", async () => {
@@ -347,7 +347,7 @@ describe("historial", () => {
   it("sin partidas explica que aparecerán aquí y ofrece crear una sala", async () => {
     const services = withHistory({ games: [], nextCursor: null });
     const { user } = renderAt("/perfil", services);
-    expect(await screen.findByText("Cuando juegues, tus partidas aparecerán aquí.")).toBeInTheDocument();
+    expect(await screen.findByText("Cuando juegues a Doble tipo, tus partidas aparecerán aquí.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Crear una sala" }));
     expect(screen.getByTestId("location")).toHaveTextContent("/");
   });

@@ -242,8 +242,10 @@ export const AUCTION_PROFILE_TEXT = {
   noneOther: "Aún no ha jugado a la subasta.",
   loading: "Cargando tus subastas…",
   failed: "No se pudieron cargar tus subastas.",
-  retry: "Reintentar",
+  retry: "Reintentar las subastas",
   team: (count: number): string => `Tu equipo de ${count} Pokémon:`,
+  noTeam: "Sin equipo: la partida terminó durante la puja.",
+  dobleTipo: "Doble tipo",
 };
 
 export const RESULT_LABELS: Record<GameResult, string> = { won: "Ganaste", drawn: "Empate", lost: "Perdiste" };

@@ -10,7 +10,7 @@ import { Button } from "../../components/Button";
 import { LogoMark } from "../../components/Logo";
 import { Notice } from "../../components/Notice";
 import { rise } from "../../components/rise";
-import { AVATAR_TEXT, MENU_TEXT, avatarLabel, errorMessage } from "../../i18n/es";
+import { AUCTION_PROFILE_TEXT, AVATAR_TEXT, MENU_TEXT, avatarLabel, errorMessage } from "../../i18n/es";
 import { useServices, useSession } from "../../services";
 import { AvatarPicker } from "./AvatarPicker";
 import { DeleteAccount } from "./DeleteAccount";
@@ -95,10 +95,13 @@ export function ProfilePage() {
         </div>
       </header>
       {picking ? <AvatarPicker current={avatarId} name={name} onClose={closePicker} /> : null}
+      {/* Con dos juegos, cada bloque dice de cuál es (#40). */}
+      <h2 className="-mb-2 font-display text-xl font-semibold">{AUCTION_PROFILE_TEXT.dobleTipo}</h2>
       <StatsView stats={stats} own={own} />
       {own ? <HistoryList /> : null}
       <AuctionStatsView auction={auction} own={own} />
-      {own ? <AuctionHistoryList /> : null}
+      {/* Sin subastas, el resumen ya lo dice: la lista ni se pide. */}
+      {own && auction.played > 0 ? <AuctionHistoryList /> : null}
       {own && account && emailCodes ? <EmailVerification email={account.email} verified={account.emailVerified ?? false} /> : null}
       {own && account ? <DeleteAccount /> : null}
       <div>

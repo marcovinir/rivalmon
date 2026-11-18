@@ -62,4 +62,4 @@ one.close();
 two.close();
 
 console.log(`\nPara limpiar la base de datos de desarrollo:`);
-console.log(`DELETE FROM games WHERE room_code = '${code}'; DELETE FROM users WHERE email LIKE '%@smoke.test';`);
+console.log(`DELETE FROM games WHERE room_code = '${code}'; DELETE FROM auction_games WHERE id IN (SELECT game_id FROM auction_game_players WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@smoke.test')); DELETE FROM users WHERE email LIKE '%@smoke.test';`);

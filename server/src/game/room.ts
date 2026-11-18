@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import type { RoomConfig, RoomStateView, Seat } from "@pokemon-minigames/shared";
 import type { PokemonCatalog } from "../catalog/pokemon-catalog.js";
 import { type Effect, type GameEvent, type GameOutcome, type RoundRecord, SEATS } from "./engine/types.js";
@@ -234,6 +234,8 @@ export class GameRoom {
           if (!this.ports.auctionHistory || players.some((player) => !player || player.guest === true)) break;
           const { record } = effect;
           const input = {
+            id: randomUUID(),
+            endedAt: new Date(this.ports.clock.now()),
             roomCode: this.code,
             reason: record.reason,
             winnerUserId: record.winnerSeat ? (this.state.players[record.winnerSeat]?.userId ?? null) : null,

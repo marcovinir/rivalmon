@@ -35,9 +35,12 @@ describe("la subasta en el perfil", () => {
     const block = await screen.findByRole("region", { name: "Subasta Pokémon" });
     const value = (label: string) => within(block).getByText(label).nextElementSibling;
     expect(value("Partidas")).toHaveTextContent("3");
-    expect(value("Victorias")).toHaveTextContent("2");
-    expect(value("Derrotas")).toHaveTextContent("1");
-    expect(value("Porcentaje")).toHaveTextContent("67 %");
+    // Las mismas etiquetas que Doble tipo: «Victorias» es el porcentaje en los dos bloques.
+    expect(value("Ganadas")).toHaveTextContent("2");
+    expect(value("Perdidas")).toHaveTextContent("1");
+    expect(value("Victorias")).toHaveTextContent("67 %");
+    // Cada juego con su título.
+    expect(screen.getByRole("heading", { name: "Doble tipo" })).toBeInTheDocument();
   });
 
   it("sin subastas lo dice, en la persona que toca", async () => {
@@ -48,7 +51,8 @@ describe("la subasta en el perfil", () => {
 
   it("mis últimas subastas: el rival, el resultado, el motivo, la fecha y mi equipo", async () => {
     const services = fakeServices();
-    services.endpoints.stats.auctionHistory = vi.fn(async () => ({ games: [game(), game({ id: "a2", result: "lost", reason: "forfeit" })] }));
+    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: NO_STATS, auction: AUCTION }));
+    services.endpoints.stats.auctionHistory = vi.fn(async () => ({ games: [game(), game({ id: "a2", result: "lost", reason: "forfeit", team: [] })] }));
     renderAt("/perfil", services);
     const list = await screen.findByRole("list", { name: "Tus últimas subastas" });
     const rows = within(list).getAllByRole("listitem");
@@ -59,12 +63,17 @@ describe("la subasta en el perfil", () => {
     expect(rows[1]).toHaveTextContent("Abandonaste la partida");
     expect(rows[0]!.querySelector("time")).toHaveAttribute("dateTime", "2026-11-14T12:00:00.000Z");
     expect(rows[0]!.querySelectorAll("img[data-team-member]")).toHaveLength(6);
+    // Un abandono durante la puja puede dejar el equipo vacío: se dice.
+    expect(rows[1]).toHaveTextContent("Sin equipo: la partida terminó durante la puja.");
   });
 
-  it("sin subastas propias lo dice; en un perfil ajeno no se piden", async () => {
+  it("sin subastas propias lo dice una vez y no pide la lista; en un perfil ajeno tampoco se piden", async () => {
     const services = fakeServices();
     renderAt("/perfil", services);
     expect(await screen.findByText("Aún no has jugado a la subasta.")).toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getAllByText("Aún no has jugado a la subasta.")).toHaveLength(1);
+    expect(services.endpoints.stats.auctionHistory).not.toHaveBeenCalled();
     const other = fakeServices();
     renderAt("/jugador/misty", other);
     await screen.findAllByRole("region", { name: "Subasta Pokémon" });

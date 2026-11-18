@@ -112,7 +112,7 @@ export function HistoryList() {
     body =
       games.length === 0 ? (
         <div className="flex flex-col items-start gap-2">
-          <p className="text-sm text-muted">Cuando juegues, tus partidas aparecerán aquí.</p>
+          <p className="text-sm text-muted">Cuando juegues a Doble tipo, tus partidas aparecerán aquí.</p>
           <Button variant="primary" onClick={() => navigate("/")}>
             Crear una sala
           </Button>

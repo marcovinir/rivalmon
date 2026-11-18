@@ -8,7 +8,7 @@ import { formatPercent, formatPower, formatScore, winsLabel } from "./format";
 /** Las estadísticas de una persona. `own` solo cambia la persona gramatical de los mensajes. */
 export function StatsView({ stats, own }: { stats: Stats; own: boolean }) {
   if (stats.played === 0) {
-    return <Notice>{own ? "Todavía no has jugado ninguna partida." : "Todavía no ha jugado ninguna partida."}</Notice>;
+    return <Notice>{own ? "Todavía no has jugado a Doble tipo." : "Todavía no ha jugado a Doble tipo."}</Notice>;
   }
 
   return (

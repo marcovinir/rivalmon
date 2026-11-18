@@ -29,7 +29,7 @@ Dos tablas nuevas; no se toca ninguna existente.
 
 - Una sola escritura, al terminar la partida, si terminó como partida jugada: `completed`, `forfeit` o `disconnect`. Lo que se cancela o caduca antes de empezar no deja filas.
 - Solo si **los dos asientos son cuentas**: con un invitado no se escribe nada, como en Doble tipo.
-- Si la escritura falla, la partida sigue igual para los jugadores y se anota el error en el registro del servidor; no se reintenta.
+- Si la escritura falla, la partida sigue igual para los jugadores, se reintenta como las demás escrituras (3 veces) y, si sigue fallando, se anota en el registro del servidor. El id de la partida se genera al terminar, así que un reintento no la duplica (revisión independiente).
 - La revancha es otra partida y otra fila.
 - **Al borrar una cuenta** sus filas se quedan: la cuenta ya se anonimiza (`borrada-…@invalid`) y el rival conserva su historial, como en Doble tipo.
 

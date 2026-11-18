@@ -57,13 +57,15 @@ export class StatsService {
       score: row.finalStats,
     }));
 
+    // El resumen de la subasta no depende de lo demás: se pide a la vez.
+    const auction = this.auction.stats(userId);
     const picks = await this.prisma.roundPick.findMany({
       where: { userId, result: "VALID", round: { game: { status: "completed" } } },
       select: { pokemonId: true },
     });
     const wonPokemonIds = picks.flatMap((pick) => (pick.pokemonId === null ? [] : [pick.pokemonId]));
 
-    return { username: user.username, avatarId: user.avatarPokemonId, stats: buildStats(games, wonPokemonIds, this.catalog), auction: await this.auction.stats(userId) };
+    return { username: user.username, avatarId: user.avatarPokemonId, stats: buildStats(games, wonPokemonIds, this.catalog), auction: await auction };
   }
 
   async getHistory(userId: string, { limit, before }: HistoryOptions): Promise<HistoryPage> {

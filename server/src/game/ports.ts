@@ -60,6 +60,10 @@ export interface GameRepository {
 
 /** Una partida de subasta para guardar (#40): siempre entre dos cuentas. */
 export interface AuctionGameInput {
+  /** Se genera una vez al terminar: un reintento lleva el mismo y no duplica la partida. */
+  id: string;
+  /** Cuándo terminó; no cuándo se escribió. */
+  endedAt: Date;
   roomCode: string;
   reason: GameEndReason;
   winnerUserId: string | null;

@@ -58,17 +58,25 @@ function room(opts: { guest?: boolean; save?: (input: AuctionGameInput) => Promi
   instance.dispatch({ type: "PLAYER_CONNECTED", seat: 2 });
   time.advance(5000);
   expect(instance.view(1).phase).toBe("auction");
-  return { room: instance, saved, logger };
+  return { room: instance, saved, logger, time };
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("la sala la guarda", () => {
   it("entre dos cuentas, con quién ganó y en qué asiento estaba cada uno", async () => {
-    const { room: r, saved } = room();
+    const { room: r, saved, time } = room();
     r.dispatch({ type: "LEAVE", seat: 1 });
     await settle();
-    expect(saved).toEqual([{ roomCode: "SUB234", reason: "forfeit", winnerUserId: "u2", players: [expect.objectContaining({ userId: "u1", seat: 1 }), expect.objectContaining({ userId: "u2", seat: 2 })] }]);
+    expect(saved).toEqual([{ id: expect.stringMatching(/^[0-9a-f-]{36}$/), endedAt: new Date(time.now()), roomCode: "SUB234", reason: "forfeit", winnerUserId: "u2", players: [expect.objectContaining({ userId: "u1", seat: 1 }), expect.objectContaining({ userId: "u2", seat: 2 })] }]);
+  });
+
+  it("también la desconexión, con su motivo", async () => {
+    const { room: r, saved, time } = room();
+    r.dispatch({ type: "PLAYER_DISCONNECTED", seat: 1 });
+    time.advance(60_000);
+    await settle();
+    expect(saved).toEqual([expect.objectContaining({ reason: "disconnect", winnerUserId: "u2" })]);
   });
 
   it("con un invitado no se guarda nada", async () => {

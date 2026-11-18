@@ -34,9 +34,12 @@ test("una subasta entre dos cuentas queda en los dos perfiles, y con un invitado
   await leave(misty.page);
   await expect(ash.page.getByRole("heading", { name: "Ganaste" })).toBeVisible({ timeout: 15_000 });
 
-  await ash.page.goto("/perfil");
-  await expect(tile(ash.page, "Partidas")).toHaveText("1");
-  await expect(tile(ash.page, "Victorias")).toHaveText("1");
+  // El guardado va por detrás del final: se recarga hasta que aparece.
+  await expect(async () => {
+    await ash.page.goto("/perfil");
+    await expect(tile(ash.page, "Partidas")).toHaveText("1", { timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
+  await expect(tile(ash.page, "Ganadas")).toHaveText("1");
   const mine = ash.page.getByRole("list", { name: "Tus últimas subastas" }).getByRole("listitem");
   await expect(mine).toHaveCount(1);
   await expect(mine.first()).toContainText("Ganaste");
@@ -44,11 +47,11 @@ test("una subasta entre dos cuentas queda en los dos perfiles, y con un invitado
   await expect(mine.first().getByRole("link", { name: misty.name })).toBeVisible();
 
   await misty.page.goto("/perfil");
-  await expect(tile(misty.page, "Derrotas")).toHaveText("1");
+  await expect(tile(misty.page, "Perdidas")).toHaveText("1");
   await expect(misty.page.getByRole("list", { name: "Tus últimas subastas" }).getByRole("listitem").first()).toContainText("Abandonaste la partida");
   // El perfil ajeno enseña el resumen, pero no sus partidas.
   await misty.page.goto(`/jugador/${ash.name}`);
-  await expect(tile(misty.page, "Victorias")).toHaveText("1");
+  await expect(tile(misty.page, "Ganadas")).toHaveText("1");
   await expect(misty.page.getByRole("list", { name: "Tus últimas subastas" })).toHaveCount(0);
 
   // Con un invitado no queda rastro: ash sigue con una sola partida.
@@ -78,6 +81,11 @@ test("el perfil con 10 subastas y un rival de nombre largo cabe y tiene contrast
   // fotografía el estado final.
   await ash.page.emulateMedia({ reducedMotion: "reduce" });
   await ash.page.route("**/stats/auction/history", (route) => route.fulfill({ json: { games } }));
+  // El resumen también: sin partidas, el perfil ni pide la lista.
+  await ash.page.route(/\/stats$/, async (route) => {
+    const real = await (await route.fetch()).json();
+    await route.fulfill({ json: { ...real, auction: { played: 10, wins: 6, losses: 4, winRate: 0.6 } } });
+  });
   for (const width of [360, 375, 1280]) {
     await ash.page.setViewportSize({ width, height: width < 1000 ? 760 : 900 });
     await ash.page.goto("/perfil");

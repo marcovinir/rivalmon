@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { PrismaAuctionHistory } from "../../src/game/prisma-auction-history.js";
@@ -22,6 +23,8 @@ afterAll(() => prisma.$disconnect());
 const get = (path: string, user: TestUser = ash) => request(ctx.app).get(path).set({ Authorization: `Bearer ${user.token}` });
 const play = (winner: TestUser) =>
   history.save({
+    id: randomUUID(),
+    endedAt: new Date(),
     roomCode: "SUB234",
     reason: "completed",
     winnerUserId: winner.userId,
@@ -49,6 +52,15 @@ describe("las estadísticas de la subasta", () => {
     expect(response.status).toBe(200);
     expect(response.body.games).toEqual([expect.objectContaining({ result: "won", team: [1, 2, 3, 4, 5, 6], opponent: { username: "misty", avatarId: null } })]);
     expect((await get("/stats/auction/history", misty)).body.games[0]).toMatchObject({ result: "lost", team: [7, 8, 9, 10, 11, 12] });
+  });
+
+  it("si el rival borra su cuenta, la partida sigue en mi historial, con el rival como cuenta borrada", async () => {
+    await play(ash);
+    expect((await request(ctx.app).delete("/auth/me").set({ Authorization: `Bearer ${misty.token}` }).send({ password: "pikachu-123" })).status).toBe(204);
+    const games = (await get("/stats/auction/history")).body.games;
+    expect(games).toHaveLength(1);
+    expect(games[0].opponent.username).not.toBe("misty");
+    expect((await get("/stats")).body.auction).toMatchObject({ played: 1, wins: 1 });
   });
 
   it("sin sesión 401; un invitado 403", async () => {
