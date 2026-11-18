@@ -63,7 +63,7 @@ function rivalFighterView(fighter: Fighter, catalog: PokemonCatalog): BattleFigh
     const move = moveData(slot.id)!;
     return { move: slot.id, name: move.names.es, type: move.type, ppUsed: move.pp - slot.pp };
   });
-  return { ...fighterView(fighter, catalog), revealedMoves };
+  return { ...fighterView(fighter, catalog), revealedMoves, moveCount: fighter.moves.length };
 }
 
 /** Un Pokémon de mi equipo, con sus 4 ataques y los PP que les quedan (#56). La eficacia depende del rival: aquí no va. */

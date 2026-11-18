@@ -1,11 +1,12 @@
 import { type FormEvent, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router";
+import { Link, Navigate, useLocation, useNavigate } from "react-router";
 import { ApiError } from "../api/client";
 import { Button } from "../components/Button";
 import { CodeField } from "../components/CodeField";
 import { Notice } from "../components/Notice";
 import { TextField } from "../components/TextField";
 import { useServices } from "../services";
+import { useEmailCodesStatus } from "../session/auth-options";
 import { AuthCard } from "./AuthCard";
 import { AuthLayout } from "./AuthLayout";
 import { serverFieldErrors, validateEmail, validateReset } from "./auth-validation";
@@ -26,8 +27,17 @@ const backToLogin = (
   </Link>
 );
 
+/**
+ * Con los códigos por correo apagados, estas pantallas no existen: quien llega por la URL va a iniciar sesión. Mientras se
+ * consulta se muestra la pantalla, para no rebotar a quien sí puede usarla.
+ */
+function useRequireEmailCodes(): boolean {
+  return useEmailCodesStatus() === false;
+}
+
 /** Pide el correo y envía el código para cambiar la contraseña; sigue a la pantalla donde se escribe. */
 export function ForgotPasswordPage() {
+  const off = useRequireEmailCodes();
   const { endpoints } = useServices();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -53,6 +63,8 @@ export function ForgotPasswordPage() {
       setSubmitting(false);
     }
   }
+
+  if (off) return <Navigate to="/login" replace />;
 
   return (
     <AuthLayout>
@@ -89,6 +101,7 @@ interface ResetState {
 
 /** Cambia la contraseña con el código que llegó. No abre sesión: vuelve al inicio de sesión con un aviso. */
 export function ResetPasswordPage() {
+  const off = useRequireEmailCodes();
   const { endpoints } = useServices();
   const navigate = useNavigate();
   const state = useLocation().state as ResetState | null;
@@ -122,8 +135,8 @@ export function ResetPasswordPage() {
     } catch (error) {
       const fields = error instanceof ApiError ? serverFieldErrors(error) : {};
       setErrors({ email: fields.email, password: fields.password });
-      // Si el servidor señaló campos concretos, el aviso general sobra.
-      setFormError(fields.email || fields.password ? null : describeError(error));
+      // Si el servidor señaló un campo que se ve, el aviso general sobra; el correo, cuando ya se sabe, no se ve.
+      setFormError((fields.email && !known) || fields.password ? null : describeError(error));
       setSubmitting(false);
     }
   }
@@ -149,11 +162,22 @@ export function ResetPasswordPage() {
     }
   }
 
+  if (off) return <Navigate to="/login" replace />;
+
   return (
     <AuthLayout>
       <AuthCard title="Nueva contraseña" footer={backToLogin}>
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
           {info ? <Notice>{info}</Notice> : null}
+          {/* Una errata en el correo no se notaría: se dice a cuál se envió y se puede volver a escribirlo. */}
+          {known ? (
+            <p className="text-sm">
+              Código enviado a <b className="[overflow-wrap:anywhere]">{known}</b>{" "}
+              <Link to="/olvide" aria-label="Cambiar el correo" className="font-semibold text-accent underline">
+                Cambiar
+              </Link>
+            </p>
+          ) : null}
           {formError ? <Notice tone="danger">{formError}</Notice> : null}
           {known ? null : (
             <TextField

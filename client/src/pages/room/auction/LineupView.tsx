@@ -26,7 +26,13 @@ export function LineupView() {
   const { view, client } = useRoom();
   const battle = view.auction?.battle;
   const [order, setOrder] = useState<number[]>(() => (battle?.confirmed ? battle.myLineup : battle?.myLineupDraft) ?? []);
-  const [last, setLast] = useState<{ id: number; position: number | null } | null>(null);
+  const [last, setLast] = useState<{ id: number; position: number | null; shifted: boolean } | null>(null);
+  const waitingRef = useRef<HTMLButtonElement>(null);
+  const confirmedNow = battle?.confirmed ?? false;
+  // Al confirmar, el botón pasa a «Esperando al rival…»: el foco se queda en él en lugar de perderse.
+  useEffect(() => {
+    if (confirmedNow && document.activeElement === document.body) waitingRef.current?.focus({ preventScroll: true });
+  }, [confirmedNow]);
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelDraft = () => {
     if (draftTimer.current) clearTimeout(draftTimer.current);
@@ -40,13 +46,16 @@ export function LineupView() {
   const total = battle.myTeam.length;
   const nameOf = (id: number) => battle.myTeam.find((one) => one.pokemon.id === id)?.pokemon.names.es ?? "";
   const toggle = (id: number) => {
+    if (confirmed) return;
     const next = order.includes(id) ? order.filter((one) => one !== id) : [...order, id];
     setOrder(next);
-    setLast({ id, position: next.includes(id) ? next.indexOf(id) + 1 : null });
+    // Quitar un número que no era el último corre a los que venían detrás.
+    setLast({ id, position: next.includes(id) ? next.indexOf(id) + 1 : null, shifted: order.includes(id) && order.indexOf(id) < order.length - 1 });
     cancelDraft();
     draftTimer.current = setTimeout(() => client.lineup(next, true), DRAFT_DELAY_MS);
   };
   const confirm = () => {
+    if (confirmed || shown.length !== total) return;
     // Confirmar ya manda el orden entero: el borrador pendiente sobra.
     cancelDraft();
     client.lineup(order);
@@ -60,7 +69,7 @@ export function LineupView() {
         <Timer deadline={battle.deadline} offset={view.clockOffset} totalMs={BATTLE_LINEUP_MS} label={BATTLE_TEXT.lineupTimer} />
       </Card>
       <p role="status" className="sr-only">
-        {last ? (last.position === null ? BATTLE_TEXT.lineupCleared(nameOf(last.id)) : BATTLE_TEXT.lineupNumbered(nameOf(last.id), last.position)) : ""}
+        {last ? (last.position === null ? BATTLE_TEXT.lineupCleared(nameOf(last.id)) + (last.shifted ? ` ${BATTLE_TEXT.lineupShifted}` : "") : BATTLE_TEXT.lineupNumbered(nameOf(last.id), last.position)) : ""}
       </p>
       <ul aria-label={BATTLE_TEXT.yourLineup} className="grid grid-cols-1 gap-2 lg:grid-cols-2">
         {battle.myTeam.map((one) => {
@@ -73,7 +82,8 @@ export function LineupView() {
         })}
       </ul>
       <div className="lineup-confirm">
-        <Button variant="primary" size="lg" className="w-full" disabled={confirmed || shown.length !== total} onClick={confirm}>
+        {/* Ya confirmada no se desactiva del todo: un botón desactivado pierde el foco y saca al teclado de la página. */}
+        <Button ref={waitingRef} variant="primary" size="lg" className="w-full" disabled={!confirmed && shown.length !== total} aria-disabled={confirmed || undefined} onClick={confirm}>
           {confirmed ? AUCTION_TEXT.waitingRival : BATTLE_TEXT.confirmOrder(shown.length, total)}
         </Button>
       </div>
@@ -102,10 +112,11 @@ export function LineupView() {
 /** Un Pokémon mío: todo lo que hace falta para decidir su puesto, y el número que lleva. */
 function MyCard({ fighter, position, disabled, onToggle }: { fighter: BattleFighterView; position: number; disabled: boolean; onToggle(): void }) {
   const name = fighter.pokemon.names.es;
-  const label = position === 0 ? BATTLE_TEXT.lineupNoNumber(name) : BATTLE_TEXT.lineupNumber(name, position);
+  // «Pulsado» ya lo dice aria-pressed: la etiqueta solo añade el número, que es lo que no se ve sin mirar.
+  const label = position === 0 ? name : BATTLE_TEXT.lineupNumber(name, position);
   const detailsId = `lineup-${fighter.pokemon.id}`;
   return (
-    <button type="button" className="lineup-card" aria-pressed={position > 0} aria-label={label} aria-describedby={detailsId} disabled={disabled} onClick={onToggle}>
+    <button type="button" className="lineup-card" aria-pressed={position > 0} aria-label={label} aria-describedby={detailsId} aria-disabled={disabled || undefined} onClick={onToggle}>
       <span aria-hidden="true" className="lineup-number">{position || ""}</span>
       <img src={spriteUrl(fighter.pokemon.id)} alt="" className="size-16 flex-none [image-rendering:pixelated]" />
       <span id={detailsId} className="flex min-w-0 flex-1 flex-col gap-1 text-left">

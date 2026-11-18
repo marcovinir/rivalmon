@@ -125,6 +125,15 @@ describe("olvidé mi contraseña", () => {
     expect(mailer.sent).toHaveLength(0);
   });
 
+  it("una cuenta borrada no recibe nada aunque recupere un correo real (#68): la guarda mira el nombre, no solo el correo", async () => {
+    const { token } = await register();
+    const me = (await request(app).get("/auth/me").set(...bearer(token))).body.user;
+    expect((await request(app).delete("/auth/me").set(...bearer(token)).send({ password: ash.password })).status).toBe(204);
+    await prisma.user.update({ where: { id: me.id }, data: { email: ash.email } });
+    expect((await forgot(ash.email)).status).toBe(202);
+    expect(mailer.sent).toHaveLength(0);
+  });
+
   it("restablecer cambia la contraseña, cierra las sesiones abiertas y verifica el correo", async () => {
     const { cookie } = await register();
     await forgot(ash.email);

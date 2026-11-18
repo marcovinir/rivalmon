@@ -43,6 +43,15 @@ describe("elegir al siguiente Pokémon", () => {
   });
 });
 
+describe("el debilitado (#68)", () => {
+  it("pierde el aura de su estado: ya no pelea", () => {
+    renderRoom([battleState("battle", { choosing: false, moves: [], rivalTeam: [fighter(4, "Cuatro", 0, 100, { status: "poison" })] })]);
+    const spot = screen.getByRole("img", { name: "Cuatro" }).closest(".battle-spot")!;
+    expect(spot).toHaveClass("battle-fainted");
+    expect(spot.className).not.toMatch(/battle-aura/);
+  });
+});
+
 describe("el contador", () => {
   it("dice solo el turno; en los últimos 5 antes del límite avisa de él", () => {
     const { unmount } = renderRoom([battleState("battle", { round: 3, turn: 7, calmTurns: 14 })]);

@@ -52,6 +52,8 @@ describe("lo que se sabe del rival", () => {
     const view = battle(h, 1).rivalTeam.find((one) => one.pokemon.id === rival.pokemon.id)!;
     expect(view.revealedMoves).toEqual([{ move: used.id, name: getMoveBook().moves[used.id]!.names.es, type: getMoveBook().moves[used.id]!.type, ppUsed: 1 }]);
     expect(view.moves).toBeUndefined();
+    // Cuántos tiene en total, para contar los que faltan por revelar (#68); cuáles, no.
+    expect(view.moveCount).toBe(rival.moves.length);
     const hidden = rival.moves.slice(1).map((one) => one.id).filter((id) => !titular(h, 1).moves.some((mine) => mine.id === id));
     const text = JSON.stringify(battle(h, 1).rivalTeam);
     for (const id of hidden) expect(text).not.toContain(`"${id}"`);

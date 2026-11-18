@@ -243,8 +243,10 @@ body::before {
 :root[data-mode="oscuro"] .auction-reveal {
   color: var(--fg);
 }
-:root[data-mode="oscuro"] .auction-reveal .auction-leave .auction-ready,
-:root[data-mode="oscuro"] .auction-reveal .auction-leave .auction-ready:hover {
+/* «Listo» va sobre el fondo del botón principal: su texto es el de ese fondo en todos los modos, también al pasar el
+   ratón (el oscuro de la escena daba 2,58:1 en los claros, #68). */
+.auction-reveal .auction-leave .auction-ready,
+.auction-reveal .auction-leave .auction-ready:hover {
   color: var(--accent-fg);
 }
 .auction-bid:disabled {
@@ -607,7 +609,7 @@ body::before {
 .lineup-card[aria-pressed="true"] {
   border-color: #ffcb05;
 }
-.lineup-card:disabled {
+.lineup-card[aria-disabled="true"] {
   cursor: default;
 }
 .lineup-number {

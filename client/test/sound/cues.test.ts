@@ -1,6 +1,6 @@
 import type { GameEndReason, ServerEvent } from "@pokemon-minigames/shared";
 import { describe, expect, it } from "vitest";
-import { type GameView, initialGameView } from "../../src/game/apply-event";
+import { type GameView, applyServerEvent, initialGameView } from "../../src/game/apply-event";
 import { effectsForEvent, endOutcome, musicCueFor } from "../../src/sound/cues";
 import { event, gameEnded, roundResult, silhouetteReveal } from "../helpers/events";
 
@@ -179,9 +179,15 @@ describe("el combate suena", () => {
     expect(effectsForEvent(me, turn(2), me)).toEqual([{ effect: "rival", delayMs: 0 }]);
   });
 
-  it("el K.O. suena bien si cayó el rival, y mal si caí yo", () => {
+  it("la caída suena bien si cayó el rival, mal si caí yo y neutra si caímos los dos", () => {
     expect(effectsForEvent(me, { name: "battle-fainted", payload: { fallen: [2], atLimit: false } }, me)).toEqual([{ effect: "correct", delayMs: 0 }]);
     expect(effectsForEvent(me, { name: "battle-fainted", payload: { fallen: [1], atLimit: false } }, me)).toEqual([{ effect: "wrong", delayMs: 0 }]);
-    expect(effectsForEvent(me, { name: "battle-fainted", payload: { fallen: [1, 2], atLimit: false } }, me)).toEqual([{ effect: "wrong", delayMs: 0 }]);
+    expect(effectsForEvent(me, { name: "battle-fainted", payload: { fallen: [1, 2], atLimit: false } }, me)).toEqual([{ effect: "round", delayMs: 0 }]);
+  });
+
+  it("suena cuando la animación llega a la caída, no al recibir el aviso (#68)", () => {
+    const fatal = applyServerEvent(me, { name: "battle-turn", payload: { round: 1, turn: 1, actions: [action], endNotes: [{ kind: "fainted", seat: 2, atLimit: false }] } }, 0);
+    // Antes de la nota de la caída van la embestida (250), el impacto (950) y nada más.
+    expect(effectsForEvent(fatal, { name: "battle-fainted", payload: { fallen: [2], atLimit: false } }, fatal)).toEqual([{ effect: "correct", delayMs: 1200 }]);
   });
 });

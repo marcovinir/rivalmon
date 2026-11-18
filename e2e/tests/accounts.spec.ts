@@ -6,13 +6,23 @@ import { codeFor, newPlayer, register, wrongCode } from "../support/app";
 test("olvidé mi contraseña: llega el código, se elige otra y se entra con ella", async ({ browser }) => {
   const ash = await newPlayer(browser, "ash");
   await register(ash);
-  // Sin sesión: se borran las cookies y se vuelve a la pantalla de entrar.
-  await ash.context.clearCookies();
+  // Sin sesión, en un navegador limpio con la misma IP (#68). Borrar las cookies del de la cuenta recién creada no basta:
+  // en la CI, una petición de sesión aún en vuelo podía dejar otra cookie, la sesión revivía y las pantallas de acceso
+  // llevaban al menú (PublicOnly), así que `/olvide` no llegaba a enviar nada.
+  await ash.context.close();
+  ash.context = await browser.newContext({ extraHTTPHeaders: { "X-Forwarded-For": ash.ip } });
+  ash.page = await ash.context.newPage();
   await ash.page.goto("/login");
   await ash.page.getByRole("link", { name: "¿Olvidaste tu contraseña?" }).click();
   await ash.page.getByLabel("Email").fill(`  ${ash.email.toUpperCase()} `);
-  await ash.page.getByRole("button", { name: "Enviar código" }).click();
-  await expect(ash.page.getByRole("heading", { name: "Nueva contraseña" })).toBeVisible();
+  // Falló alguna vez en la CI sin dejar rastro (#68): se espera la respuesta del servidor y, si no sigue a la pantalla
+  // siguiente, el error dice el estado y el aviso que se ve, en vez de solo «no apareció».
+  const [response] = await Promise.all([
+    ash.page.waitForResponse((one) => one.url().includes("/auth/password/forgot")),
+    ash.page.getByRole("button", { name: "Enviar código" }).click(),
+  ]);
+  expect(response.status(), `respuesta de /auth/password/forgot: ${await response.text()}`).toBe(202);
+  await expect(ash.page.getByRole("heading", { name: "Nueva contraseña" }), `aviso en pantalla: ${await ash.page.getByRole("alert").allTextContents()}`).toBeVisible();
   await ash.page.getByLabel("Código", { exact: true }).fill(await codeFor(ash));
   await ash.page.getByLabel("Nueva contraseña").fill("otra-clave-123");
   await ash.page.getByRole("button", { name: "Cambiar contraseña" }).click();

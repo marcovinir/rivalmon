@@ -120,6 +120,13 @@ describe("la ficha de cada Pokémon", () => {
     expect(tip).toHaveTextContent("3 ataques sin revelar");
   });
 
+  it("lo que falta por revelar se cuenta contra el total del rival, no contra 4 fijos (#68)", async () => {
+    const three = fighter(4, "Cuatro", 100, 100, { moveCount: 3, revealedMoves: [{ move: "hydro-pump", name: "Hidrobomba", type: "water", ppUsed: 2 }] });
+    const { user } = renderRoom([state({ rivalTeam: [three] })]);
+    await user.hover(screen.getByRole("button", { name: "Ver la ficha de Cuatro" }));
+    expect(screen.getByRole("tooltip")).toHaveTextContent("2 ataques sin revelar");
+  });
+
   it("mi equipo enseña los tipos y ataques de cada uno, también de las reservas", async () => {
     const { user } = renderRoom([state()]);
     await user.click(screen.getByRole("button", { name: "Ver tipos y ataques" }));

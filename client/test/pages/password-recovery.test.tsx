@@ -5,7 +5,8 @@ import { ApiError } from "../../src/api/client";
 import { LoginPage } from "../../src/pages/AuthPages";
 import { ForgotPasswordPage, ResetPasswordPage } from "../../src/pages/PasswordRecoveryPages";
 import { validateReset } from "../../src/pages/auth-validation";
-import { fakeServices, renderRoute } from "../helpers/services";
+import { Route, Routes } from "react-router";
+import { LocationProbe, fakeServices, renderRoute, renderWithServices } from "../helpers/services";
 
 afterEach(() => vi.useRealTimers());
 
@@ -13,6 +14,12 @@ afterEach(() => vi.useRealTimers());
 const FAKE: { toFake: ("setInterval" | "clearInterval" | "Date")[] } = { toFake: ["setInterval", "clearInterval", "Date"] };
 
 type Services = ReturnType<typeof fakeServices>;
+
+/** Estas pantallas solo existen con los códigos por correo encendidos: sus pruebas los encienden. */
+const withCodes = (services: Services = fakeServices()): Services => {
+  services.endpoints.auth.options = vi.fn(async () => ({ emailCodes: true }));
+  return services;
+};
 
 describe("validateReset", () => {
   it("pide un email válido, un código de seis dígitos y una contraseña de 8 a 72 bytes", () => {
@@ -26,7 +33,7 @@ describe("validateReset", () => {
   });
 });
 
-function renderForgot(services: Services = fakeServices()) {
+function renderForgot(services: Services = withCodes()) {
   const utils = renderRoute("/olvide", <ForgotPasswordPage />, { services, route: "/olvide" });
   return { ...utils, services, user: userEvent.setup() };
 }
@@ -93,7 +100,7 @@ describe("pantalla «Recupera tu contraseña»", () => {
   });
 });
 
-function renderReset(state: { email?: string; notice?: string } | null = { email: "ash@example.com", notice: "Si existe una cuenta con ese correo, te enviamos un código." }, services: Services = fakeServices()) {
+function renderReset(state: { email?: string; notice?: string } | null = { email: "ash@example.com", notice: "Si existe una cuenta con ese correo, te enviamos un código." }, services: Services = withCodes()) {
   const route = state === null ? "/restablecer" : { pathname: "/restablecer", state };
   const utils = renderRoute("/restablecer", <ResetPasswordPage />, { services, route });
   return { ...utils, services, user: userEvent.setup() };
@@ -238,5 +245,39 @@ describe("el inicio de sesión ofrece recuperar la contraseña", () => {
   it("sin aviso no hay ningún mensaje", () => {
     renderLogin({ emailCodes: false });
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+});
+
+describe("lo que quedó de la revisión de #64 (#68)", () => {
+  it("/restablecer dice a qué correo se envió el código y deja cambiarlo", () => {
+    renderReset();
+    expect(screen.getByText(/Código enviado a/).closest("p")).toHaveTextContent("Código enviado a ash@example.com Cambiar");
+    expect(screen.getByRole("link", { name: "Cambiar el correo" })).toHaveAttribute("href", "/olvide");
+  });
+
+  it("si el servidor marca el correo, que no se ve, el aviso general sí sale", async () => {
+    const services = withCodes();
+    services.endpoints.auth.resetPassword = vi.fn(async () => {
+      throw new ApiError(400, "VALIDATION_ERROR", [{ path: "email", message: "Escribe un email válido." }]);
+    });
+    const { user } = renderReset(undefined, services);
+    await fillReset(user);
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+  });
+
+  it.each(["/olvide", "/restablecer"])("con los códigos apagados, %s lleva a /login", async (path) => {
+    const services = fakeServices();
+    renderWithServices(
+      <>
+        <Routes>
+          <Route path="/olvide" element={<ForgotPasswordPage />} />
+          <Route path="/restablecer" element={<ResetPasswordPage />} />
+          <Route path="/login" element={<p>Inicio de sesión</p>} />
+        </Routes>
+        <LocationProbe />
+      </>,
+      { services, route: path },
+    );
+    expect(await screen.findByText("Inicio de sesión")).toBeInTheDocument();
   });
 });

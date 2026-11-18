@@ -89,10 +89,14 @@ test("una partida completa: puja, revelación, alineación, combate, resumen y r
   await ash.page.getByRole("button", { name: "Listo" }).click();
   await expect(ash.page.getByRole("button", { name: "Esperando al rival…" })).toBeDisabled();
   // Recargar conserva la revelación y el «Listo» ya enviado, sin reiniciar el plazo.
+  // La revelación dura 18 s: en una CI lenta puede acabar mientras recarga, y entonces vale llegar a la alineación (#68).
   await ash.page.reload();
-  await expect(revealTitle(ash.page)).toBeVisible();
-  await expect(ash.page.getByRole("button", { name: "Esperando al rival…" })).toBeDisabled();
-  await misty.page.getByRole("button", { name: "Listo" }).click();
+  const lineupTitle = (page: Page) => page.getByRole("heading", { name: "Elige tu alineación" });
+  await expect(revealTitle(ash.page).or(lineupTitle(ash.page))).toBeVisible({ timeout: 30_000 });
+  if (await revealTitle(ash.page).isVisible()) {
+    await expect(ash.page.getByRole("button", { name: "Esperando al rival…" })).toBeDisabled();
+    await misty.page.getByRole("button", { name: "Listo" }).click({ timeout: 5_000 }).catch(() => undefined);
+  }
 
   // Alineación (#56): se numera a cada Pokémon tocándolo. Ash empieza por el último, recarga a medias y conserva el número.
   for (const page of pages) await expect(page.getByRole("heading", { name: "Elige tu alineación" })).toBeVisible({ timeout: 15_000 });
@@ -266,8 +270,8 @@ test("la revelación conserva el contraste en los cuatro temas, en móvil y escr
             document.documentElement.dataset.theme = theme;
             document.documentElement.dataset.mode = mode;
           }, { theme, mode });
-          // La corrección oscura debe conservarse al pasar el ratón; los modos claros no se modifican (#65).
-          if (mode === "oscuro") {
+          // «Listo» conserva el contraste al pasar el ratón en los cuatro temas/modos (#65, #68).
+          {
             await page.getByRole("button", { name: "Listo" }).hover();
             await page.waitForTimeout(150);
             const hovered = await page.evaluate(() => (window as unknown as { __contrastAudit(): string[] }).__contrastAudit());

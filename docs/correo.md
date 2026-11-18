@@ -83,7 +83,7 @@ Si algo falla, mira la tabla del final.
 
 ## Marcha atrás
 
-Si algo sale mal o quieres parar los correos: en Render → **Environment** pon `EMAIL_CODES` a `off` y guarda con **Save and deploy**. El sitio vuelve a funcionar exactamente como antes: desaparecen «¿Olvidaste tu contraseña?» y la fila del correo del perfil. Las cuentas que verificaron su correo lo conservan para cuando se vuelva a activar. No hace falta borrar las demás variables.
+Si algo sale mal o quieres parar los correos: en Render → **Environment** pon `EMAIL_CODES` a `off` y guarda con **Save and deploy**. El sitio vuelve a funcionar exactamente como antes: desaparecen «¿Olvidaste tu contraseña?» y la fila del correo del perfil, y quien abra `/olvide` o `/restablecer` por la dirección va al inicio de sesión. Las cuentas que verificaron su correo lo conservan para cuando se vuelva a activar. No hace falta borrar las demás variables.
 
 ## Si algo no funciona
 
