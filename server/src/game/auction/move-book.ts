@@ -12,6 +12,8 @@ export interface MoveBook {
   moves: Record<string, MoveData>;
   abilities: Record<string, { es: string; en: string }>;
   sets: Record<string, MoveSet>;
+  /** El texto oficial en español de cada movimiento (#58): `npm run moves:descriptions -w server` lo añade. */
+  descriptions: Record<string, string>;
 }
 
 const book = snapshot as unknown as MoveBook;
