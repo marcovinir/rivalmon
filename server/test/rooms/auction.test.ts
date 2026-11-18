@@ -148,8 +148,7 @@ describe("el combate por sockets", () => {
     const { current } = await startAuction();
     const bad: [string, unknown][] = [
       ["auction-move", { move: 7 }],
-      ["auction-pause", { choice: { titular: "x" } }],
-      ["auction-pause", { choice: { titular: 1, extra: true } }],
+      ["auction-switch", { pokemonId: 1, extra: true }],
       ["auction-lineup", { order: "x" }],
     ];
     for (const [name, payload] of bad) {
