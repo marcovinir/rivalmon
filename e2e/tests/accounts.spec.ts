@@ -6,8 +6,12 @@ import { codeFor, newPlayer, register, wrongCode } from "../support/app";
 test("olvidé mi contraseña: llega el código, se elige otra y se entra con ella", async ({ browser }) => {
   const ash = await newPlayer(browser, "ash");
   await register(ash);
-  // Sin sesión: se borran las cookies y se vuelve a la pantalla de entrar.
-  await ash.context.clearCookies();
+  // Sin sesión, en un navegador limpio con la misma IP (#68). Borrar las cookies del de la cuenta recién creada no basta:
+  // en la CI, una petición de sesión aún en vuelo podía dejar otra cookie, la sesión revivía y las pantallas de acceso
+  // llevaban al menú (PublicOnly), así que `/olvide` no llegaba a enviar nada.
+  await ash.context.close();
+  ash.context = await browser.newContext({ extraHTTPHeaders: { "X-Forwarded-For": ash.ip } });
+  ash.page = await ash.context.newPage();
   await ash.page.goto("/login");
   await ash.page.getByRole("link", { name: "¿Olvidaste tu contraseña?" }).click();
   await ash.page.getByLabel("Email").fill(`  ${ash.email.toUpperCase()} `);
