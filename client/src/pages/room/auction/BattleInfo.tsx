@@ -7,7 +7,7 @@ import { TYPE_STYLES } from "../../../theme/type-styles";
 
 /** Cuánto hay que mantener pulsado en el móvil para ver la descripción sin elegir el ataque. */
 const LONG_PRESS_MS = 450;
-/** Cuántos ataques tiene cada Pokémon: lo que falta por revelar del rival se cuenta contra esto. */
+/** Si el servidor no dice cuántos ataques tiene el rival (uno anterior a #68), los de siempre. */
 const MOVES_PER_POKEMON = 4;
 
 const capital = (text: string): string => `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
@@ -101,7 +101,7 @@ export function MoveTip({ move, id }: { move: BattleMoveView; id: string }) {
 /** La ficha de un Pokémon en combate: tipos, habilidad y ataques. Del rival, solo lo que ya enseñó, como en Showdown. */
 export function FighterTip({ fighter, rival }: { fighter: BattleFighterView; rival: boolean }) {
   const revealed = fighter.revealedMoves ?? [];
-  const hidden = MOVES_PER_POKEMON - revealed.length;
+  const hidden = (fighter.moveCount ?? MOVES_PER_POKEMON) - revealed.length;
   return (
     <div id="battle-tip" role="tooltip" className="battle-tip">
       <b className="block font-display">{fighter.pokemon.names.es}</b>

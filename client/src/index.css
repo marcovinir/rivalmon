@@ -609,7 +609,7 @@ body::before {
 .lineup-card[aria-pressed="true"] {
   border-color: #ffcb05;
 }
-.lineup-card:disabled {
+.lineup-card[aria-disabled="true"] {
   cursor: default;
 }
 .lineup-number {

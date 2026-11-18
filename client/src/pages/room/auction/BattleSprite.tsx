@@ -24,7 +24,8 @@ export function BattleSprite({ id, name, side, effect, status, fainted = false, 
       <img src={url} alt={name} onError={next} onLoad={(event) => setFit(Math.min(1, MAX_SPRITE_HEIGHT / event.currentTarget.naturalHeight))} style={{ "--sprite-fit": String(fit) } as CSSProperties} className={`battle-sprite battle-sprite-${side}`} />
     );
   return (
-    <div className={`battle-spot battle-spot-${side} ${status ? `battle-aura battle-aura-${status}` : ""} ${fainted ? "battle-fainted" : ""}`} data-battle-status={status ?? undefined}>
+    // Un debilitado ya no pelea: no lleva el aura de su estado (#68).
+    <div className={`battle-spot battle-spot-${side} ${status && !fainted ? `battle-aura battle-aura-${status}` : ""} ${fainted ? "battle-fainted" : ""}`} data-battle-status={status ?? undefined}>
       {/* La entrada va aparte de los golpes: en el mismo nodo, se repetiría al acabar cada uno. */}
       {showsAbility ? (
         <button type="button" data-ability-sprite aria-label={BATTLE_TEXT.seeInfo(name)} aria-describedby={describedBy} onMouseEnter={() => onAbility?.(true)} onMouseLeave={() => onAbility?.(false)} onFocus={() => onAbility?.(true)} onBlur={() => onAbility?.(false)} onClick={() => onAbility?.(true)} className="battle-enter battle-sprite-button flex-none">

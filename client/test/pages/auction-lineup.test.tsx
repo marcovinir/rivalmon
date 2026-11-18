@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { battleState, fighter, moveView } from "../helpers/battle";
-import { renderRoom } from "../helpers/room";
+import { renderRoom, serverSends } from "../helpers/room";
 import { fakeServices } from "../helpers/services";
 
 /** #56: cada Pokémon con sus datos, y el orden se elige numerándolos al tocarlos. */
@@ -12,7 +12,7 @@ const withMoves = (id: number, name: string) =>
   });
 const MINE = [withMoves(1, "Uno"), withMoves(2, "Dos"), withMoves(3, "Tres")];
 const lineup = (over = {}) => battleState("lineup", { round: 0, turn: 0, myTitular: null, rivalTitular: null, moves: [], myTeam: MINE, ...over });
-const card = (name: string) => screen.getByRole("button", { name: new RegExp(`^${name},`) });
+const card = (name: string) => screen.getByRole("button", { name: new RegExp(`^${name}(,|$)`) });
 
 describe("la alineación con datos", () => {
   it("cada Pokémon mío enseña imagen, tipos, habilidad, ataques con PP y estadísticas", () => {
@@ -42,14 +42,17 @@ describe("la alineación con datos", () => {
     await user.click(card("Uno"));
     expect(card("Dos")).toHaveAccessibleName(/^Dos, número 1, titular/);
     expect(card("Uno")).toHaveAccessibleName(/^Uno, número 2/);
+    // La etiqueta no repite el estado: «pulsado» ya lo dice aria-pressed.
+    expect(card("Tres").getAttribute("aria-label")).toBe("Tres");
     expect(card("Dos")).toHaveAttribute("aria-pressed", "true");
     await waitFor(() => expect(services.game.client.lineup).toHaveBeenLastCalledWith([2, 1], true));
     expect(screen.getByRole("status")).toHaveTextContent("Uno: número 2");
     await user.click(card("Dos"));
     expect(card("Uno")).toHaveAccessibleName(/^Uno, número 1, titular/);
-    expect(card("Dos")).toHaveAccessibleName(/^Dos, sin número/);
+    expect(card("Dos")).toHaveAccessibleName("Dos");
     await waitFor(() => expect(services.game.client.lineup).toHaveBeenLastCalledWith([1], true));
-    expect(screen.getByRole("status")).toHaveTextContent("Dos: sin número");
+    // Quitar un número corre a los demás: se dice.
+    expect(screen.getByRole("status")).toHaveTextContent("Dos: sin número. Los demás suben un puesto.");
   });
 
   it("confirmar pide numerar a todos y envía el orden", async () => {
@@ -80,8 +83,27 @@ describe("la alineación con datos", () => {
     unmount();
     renderRoom([lineup({ confirmed: true, myLineup: [2, 3, 1] })]);
     expect(card("Dos")).toHaveAccessibleName(/^Dos, número 1, titular/);
-    expect(card("Dos")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Esperando al rival…" })).toBeDisabled();
+    // Confirmada, se sigue pudiendo leer con el teclado: no sale del orden de tabulación.
+    expect(card("Dos")).toHaveAttribute("aria-disabled", "true");
+    expect(card("Dos")).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Esperando al rival…" })).toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("tocar una tarjeta ya confirmada no hace nada", async () => {
+    const services = fakeServices();
+    const { user } = renderRoom([lineup({ confirmed: true, myLineup: [2, 3, 1] })], services);
+    await user.click(card("Uno"));
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(services.game.client.lineup).not.toHaveBeenCalled();
+  });
+
+  it("al confirmar, el foco pasa al aviso de espera y no se pierde", async () => {
+    const services = fakeServices();
+    const { user } = renderRoom([lineup()], services);
+    for (const name of ["Tres", "Uno", "Dos"]) await user.click(card(name));
+    await user.click(screen.getByRole("button", { name: "Confirmar orden (3/3)" }));
+    serverSends(services, lineup({ confirmed: true, myLineup: [3, 1, 2] }));
+    expect(screen.getByRole("button", { name: "Esperando al rival…" })).toHaveFocus();
   });
 
   it("el reloj cuenta 45 s", () => {

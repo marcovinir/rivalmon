@@ -1,4 +1,4 @@
-import type { GameEndedPayload, Seat, ServerEvent } from "@pokemon-minigames/shared";
+import { type GameEndedPayload, type Seat, type ServerEvent, battleTurnSteps } from "@pokemon-minigames/shared";
 import type { GameView } from "../game/apply-event";
 import type { SessionStatus } from "../session/session-store";
 
@@ -73,8 +73,12 @@ export function effectsForEvent(before: GameView, event: ServerEvent, after: Gam
     case "battle-turn":
       if (event.payload.actions.length === 0) return [];
       return [now(event.payload.actions[0]!.actor === seat ? "round" : "rival")];
-    case "battle-fainted":
-      return seat === null ? [] : [now(event.payload.fallen.includes(seat) ? "wrong" : "correct")];
+    case "battle-fainted": {
+      if (seat === null) return [];
+      // Si caen los dos, nadie gana nada todavía: un sonido neutro.
+      const effect = event.payload.fallen.length === 2 ? "round" : event.payload.fallen.includes(seat) ? "wrong" : "correct";
+      return [{ effect, delayMs: faintDelay(before) }];
+    }
     case "auction-sale":
       return [now("round")];
     case "auction-reveal":
@@ -97,4 +101,19 @@ export function effectsForEvent(before: GameView, event: ServerEvent, after: Gam
     default:
       return [];
   }
+}
+
+/**
+ * El aviso de la caída llega junto al turno que la causa: suena cuando su animación llega a la nota de la caída (#68), no
+ * antes de que se vea el golpe. Sin ese turno en el registro (p. ej. al recargar), suena ya.
+ */
+function faintDelay(view: GameView): number {
+  const last = view.battleLog.at(-1);
+  if (!last) return 0;
+  let elapsed = 0;
+  for (const step of battleTurnSteps(last)) {
+    if (step.kind === "note" && step.note.kind === "fainted") return elapsed;
+    elapsed += step.durationMs;
+  }
+  return 0;
 }

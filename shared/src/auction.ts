@@ -139,6 +139,8 @@ export interface BattleFighterView {
   moves?: BattleMoveView[];
   /** Solo en el equipo rival (#58), como en Showdown: los ataques que ya usó y los PP que gastó. Los demás no van. */
   revealedMoves?: { move: BattleMove; name: string; type: TypeName; ppUsed: number }[];
+  /** Solo en el equipo rival: cuántos ataques tiene en total, para contar los que faltan por revelar (cuáles, no). */
+  moveCount?: number;
 }
 
 export interface BattleMoveView {
