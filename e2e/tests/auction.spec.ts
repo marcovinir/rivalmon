@@ -101,6 +101,8 @@ test("una partida completa: puja, revelación, alineación, combate, resumen y r
   const newTitular = ((await cards(ash.page).nth(count - 1).getAttribute("aria-label")) ?? "").split(",")[0]!;
   await cards(ash.page).nth(count - 1).click();
   await expect(cards(ash.page).nth(count - 1)).toHaveAttribute("aria-pressed", "true");
+  // El borrador sale cuando se deja de tocar (400 ms): se recarga después.
+  await ash.page.waitForTimeout(800);
   await ash.page.reload();
   await expect(ash.page.getByRole("heading", { name: "Elige tu alineación" })).toBeVisible({ timeout: 30_000 });
   await expect(cards(ash.page).nth(count - 1)).toHaveAccessibleName(new RegExp(`^${newTitular}, número 1, titular`));

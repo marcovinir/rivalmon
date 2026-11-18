@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { battleState, fighter, moveView } from "../helpers/battle";
 import { renderRoom } from "../helpers/room";
@@ -43,12 +43,12 @@ describe("la alineación con datos", () => {
     expect(card("Dos")).toHaveAccessibleName(/^Dos, número 1, titular/);
     expect(card("Uno")).toHaveAccessibleName(/^Uno, número 2/);
     expect(card("Dos")).toHaveAttribute("aria-pressed", "true");
-    expect(services.game.client.lineup).toHaveBeenLastCalledWith([2, 1], true);
+    await waitFor(() => expect(services.game.client.lineup).toHaveBeenLastCalledWith([2, 1], true));
     expect(screen.getByRole("status")).toHaveTextContent("Uno: número 2");
     await user.click(card("Dos"));
     expect(card("Uno")).toHaveAccessibleName(/^Uno, número 1, titular/);
     expect(card("Dos")).toHaveAccessibleName(/^Dos, sin número/);
-    expect(services.game.client.lineup).toHaveBeenLastCalledWith([1], true);
+    await waitFor(() => expect(services.game.client.lineup).toHaveBeenLastCalledWith([1], true));
     expect(screen.getByRole("status")).toHaveTextContent("Dos: sin número");
   });
 
@@ -60,6 +60,18 @@ describe("la alineación con datos", () => {
     for (const name of ["Tres", "Uno", "Dos"]) await user.click(card(name));
     await user.click(screen.getByRole("button", { name: "Confirmar orden (3/3)" }));
     expect(services.game.client.lineup).toHaveBeenLastCalledWith([3, 1, 2]);
+    // El borrador que quedaba pendiente ya no se envía: confirmar manda el orden entero.
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(services.game.client.lineup).toHaveBeenCalledTimes(1);
+  });
+
+  it("tocar muy rápido envía un solo borrador, al dejar de tocar: no choca con el límite de mensajes del servidor", async () => {
+    const services = fakeServices();
+    const { user } = renderRoom([lineup()], services);
+    for (const name of ["Tres", "Uno", "Dos"]) await user.click(card(name));
+    expect(services.game.client.lineup).not.toHaveBeenCalled();
+    await waitFor(() => expect(services.game.client.lineup).toHaveBeenCalledWith([3, 1, 2], true));
+    expect(services.game.client.lineup).toHaveBeenCalledTimes(1);
   });
 
   it("al recargar vuelven los números del borrador; ya confirmada, no se puede cambiar", () => {

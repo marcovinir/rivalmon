@@ -1,5 +1,5 @@
 import type { BaseStats, BattleFighterView } from "@pokemon-minigames/shared";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "../../../components/Button";
 import { Card } from "../../../components/Card";
 import { Timer } from "../../../components/Timer";
@@ -14,6 +14,8 @@ import { useRoom } from "../use-room";
 const STATS: (keyof BaseStats)[] = ["hp", "attack", "defense", "spAttack", "spDefense", "speed"];
 /** Las barras llegan al tope en 180: casi ningún Pokémon pasa de ahí en una stat. */
 const STAT_TOP = 180;
+/** El borrador sale cuando se deja de tocar: tocar seguido mandaría un mensaje por toque y chocaría con el límite del servidor. */
+const DRAFT_DELAY_MS = 400;
 
 /**
  * Elegir el orden (#56): se toca a cada Pokémon en el orden en que debe salir y recibe su número; tocarlo otra vez lo quita.
@@ -25,6 +27,12 @@ export function LineupView() {
   const battle = view.auction?.battle;
   const [order, setOrder] = useState<number[]>(() => (battle?.confirmed ? battle.myLineup : battle?.myLineupDraft) ?? []);
   const [last, setLast] = useState<{ id: number; position: number | null } | null>(null);
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelDraft = () => {
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    draftTimer.current = null;
+  };
+  useEffect(() => cancelDraft, []);
   if (!battle) return null;
 
   const confirmed = battle.confirmed;
@@ -35,7 +43,13 @@ export function LineupView() {
     const next = order.includes(id) ? order.filter((one) => one !== id) : [...order, id];
     setOrder(next);
     setLast({ id, position: next.includes(id) ? next.indexOf(id) + 1 : null });
-    client.lineup(next, true);
+    cancelDraft();
+    draftTimer.current = setTimeout(() => client.lineup(next, true), DRAFT_DELAY_MS);
+  };
+  const confirm = () => {
+    // Confirmar ya manda el orden entero: el borrador pendiente sobra.
+    cancelDraft();
+    client.lineup(order);
   };
 
   return (
@@ -59,7 +73,7 @@ export function LineupView() {
         })}
       </ul>
       <div className="lineup-confirm">
-        <Button variant="primary" size="lg" className="w-full" disabled={confirmed || shown.length !== total} onClick={() => client.lineup(order)}>
+        <Button variant="primary" size="lg" className="w-full" disabled={confirmed || shown.length !== total} onClick={confirm}>
           {confirmed ? AUCTION_TEXT.waitingRival : BATTLE_TEXT.confirmOrder(shown.length, total)}
         </Button>
       </div>
