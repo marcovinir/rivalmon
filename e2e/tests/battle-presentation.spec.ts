@@ -180,7 +180,8 @@ test("elegir al siguiente cabe a 360, 375 y escritorio, sin K.O. y con contraste
       }
       // El rival, en cambio, sigue en la misma pantalla y sabe que estoy eligiendo.
       fixture.state({ ...base, choosing: false, moves: [], rivalReplacing: true });
-      await expect(page.getByText(`${"b".repeat(30)} está eligiendo a su siguiente Pokémon…`)).toBeVisible();
+      // El anuncio para el lector repite la frase: se busca la del panel, junto a la arena.
+      await expect(page.locator("[data-arena] + div").getByText(`${"b".repeat(30)} está eligiendo a su siguiente Pokémon…`)).toBeVisible();
       await page.screenshot({ path: testInfo.outputPath(`rival-eligiendo-${width}.png`), fullPage: true });
     }
   } finally {
