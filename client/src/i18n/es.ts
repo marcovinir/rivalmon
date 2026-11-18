@@ -234,6 +234,18 @@ export const TYPES_TEXT = {
   seeInPokedex: "Ver estos Pokémon en la Pokédex",
 } as const;
 
+/** La subasta en el perfil (#40). */
+export const AUCTION_PROFILE_TEXT = {
+  title: "Subasta Pokémon",
+  recent: "Tus últimas subastas",
+  noneOwn: "Aún no has jugado a la subasta.",
+  noneOther: "Aún no ha jugado a la subasta.",
+  loading: "Cargando tus subastas…",
+  failed: "No se pudieron cargar tus subastas.",
+  retry: "Reintentar",
+  team: (count: number): string => `Tu equipo de ${count} Pokémon:`,
+};
+
 export const RESULT_LABELS: Record<GameResult, string> = { won: "Ganaste", drawn: "Empate", lost: "Perdiste" };
 
 const SAME_FOR_ALL = (text: string): Record<GameResult, string> => ({ won: text, drawn: text, lost: text });

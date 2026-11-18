@@ -157,6 +157,9 @@ model User {
   gamePlayers   GamePlayer[]
   wonGames      Game[]
   roundPicks    RoundPick[]
+  // Subasta Pokémon (#40): sus partidas y las que ganó.
+  auctionPlayers  AuctionGamePlayer[]
+  wonAuctionGames AuctionGame[]
 
   @@map("users")
 }
@@ -260,4 +263,39 @@ model RoundPick {
   @@unique([roundId, userId])
   @@index([userId])
   @@map("round_picks")
+}
+
+// --- Subasta Pokémon (#40) ---------------------------------------------------------------------------------------
+// Una fila por partida jugada entre dos cuentas (con un invitado no se guarda nada). Se escribe una sola vez, al terminar.
+model AuctionGame {
+  id        String        @id @default(uuid()) @db.Uuid
+  roomCode  String        @map("room_code") @db.VarChar(10)
+  endReason GameEndReason @map("end_reason")
+  // Nulo si la partida terminó sin ganador.
+  winnerId  String?       @map("winner_id") @db.Uuid
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  endedAt   DateTime      @map("ended_at") @db.Timestamptz(3)
+
+  winner  User?               @relation(fields: [winnerId], references: [id])
+  players AuctionGamePlayer[]
+
+  @@map("auction_games")
+}
+
+model AuctionGamePlayer {
+  gameId String @map("game_id") @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  seat   Int    @db.SmallInt
+  // Los números de Pokédex de su equipo, en orden de compra (6, o menos si se abandonó durante la puja).
+  team   Int[]  @db.SmallInt
+  spent  Int
+  damage Int
+
+  game AuctionGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user User        @relation(fields: [userId], references: [id])
+
+  @@id([gameId, seat])
+  @@unique([gameId, userId])
+  @@index([userId])
+  @@map("auction_game_players")
 }

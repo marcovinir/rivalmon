@@ -14,6 +14,7 @@ import { AVATAR_TEXT, MENU_TEXT, avatarLabel, errorMessage } from "../../i18n/es
 import { useServices, useSession } from "../../services";
 import { AvatarPicker } from "./AvatarPicker";
 import { DeleteAccount } from "./DeleteAccount";
+import { AuctionHistoryList, AuctionStatsView } from "./AuctionStats";
 import { HistoryList } from "./HistoryList";
 import { StatsView } from "./StatsView";
 import { useLoad } from "./use-load";
@@ -69,6 +70,8 @@ export function ProfilePage() {
   }
 
   const { username: name, stats } = state.data;
+  // Un servidor anterior a #40 no lo envía: cuenta como ninguna subasta.
+  const auction = state.data.auction ?? { played: 0, wins: 0, losses: 0, winRate: null };
   // El propio sale de la sesión (se actualiza al instante al cambiarlo); el ajeno, de sus estadísticas.
   const account = sessionUser && !isGuest(sessionUser) ? sessionUser : null;
   // `?? null`: un servidor anterior (tras una marcha atrás) no manda el campo y se leería «n.º undefined».
@@ -94,6 +97,8 @@ export function ProfilePage() {
       {picking ? <AvatarPicker current={avatarId} name={name} onClose={closePicker} /> : null}
       <StatsView stats={stats} own={own} />
       {own ? <HistoryList /> : null}
+      <AuctionStatsView auction={auction} own={own} />
+      {own ? <AuctionHistoryList /> : null}
       {own && account && emailCodes ? <EmailVerification email={account.email} verified={account.emailVerified ?? false} /> : null}
       {own && account ? <DeleteAccount /> : null}
       <div>

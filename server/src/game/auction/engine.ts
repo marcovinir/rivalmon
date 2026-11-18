@@ -752,4 +752,11 @@ function finish(c: Ctx, reason: GameOutcome["reason"], winnerSeat: Seat | null):
   s.bidding = null;
   s.outcome = { winnerSeat, reason };
   emit(c, "all", { name: "game-ended", payload: buildAuctionGameEnded(s, c.deps.catalog) });
+  // Solo lo que se llegó a jugar deja historial (#40): lo cancelado o caducado antes de empezar, no.
+  if (PLAYED_REASONS.has(reason)) {
+    const playerOf = (seat: Seat) => ({ team: [...s.teams[seat]], spent: s.spent[seat], damage: s.battle?.damage[seat] ?? 0 });
+    c.fx.push({ kind: "persist_auction", record: { reason, winnerSeat, players: { 1: playerOf(1), 2: playerOf(2) } } });
+  }
 }
+
+const PLAYED_REASONS = new Set<GameOutcome["reason"]>(["completed", "forfeit", "disconnect"]);

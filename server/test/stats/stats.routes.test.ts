@@ -82,6 +82,7 @@ describe("GET /stats", () => {
         bestGameScore: null,
         topPokemon: [],
       },
+      auction: { played: 0, wins: 0, losses: 0, winRate: null },
     });
   });
 
@@ -118,7 +119,7 @@ describe("GET /users/:username/stats", () => {
     });
     const response = await get("/users/ash/stats", misty);
     const text = JSON.stringify(response.body);
-    expect(Object.keys(response.body).sort()).toEqual(["avatarId", "stats", "username"]);
+    expect(Object.keys(response.body).sort()).toEqual(["auction", "avatarId", "stats", "username"]);
     expect(text).not.toContain("@example.com");
     expect(text).not.toContain(ash.userId);
     expect(text).not.toContain("SECRET");

@@ -1,6 +1,7 @@
-import type { HistoryEntry, HistoryPage, StatsResponse } from "@pokemon-minigames/shared";
+import { AUCTION_HISTORY_LIMIT, type AuctionHistoryResponse, type HistoryEntry, type HistoryPage, type StatsResponse } from "@pokemon-minigames/shared";
 import type { PokemonCatalog } from "../catalog/pokemon-catalog.js";
 import type { PrismaClient } from "../db/prisma.js";
+import { PrismaAuctionHistory } from "../game/prisma-auction-history.js";
 import { AppError } from "../http/errors.js";
 import { type FinishedGame, buildStats, resultFor } from "./calculate.js";
 import { type HistoryCursor, InvalidCursorError, decodeCursor, encodeCursor } from "./cursor.js";
@@ -20,10 +21,17 @@ export interface HistoryOptions {
 export class StatsService {
   private readonly prisma: PrismaClient;
   private readonly catalog: PokemonCatalog;
+  private readonly auction: PrismaAuctionHistory;
 
   constructor(deps: StatsServiceDeps) {
     this.prisma = deps.prisma;
     this.catalog = deps.catalog;
+    this.auction = new PrismaAuctionHistory(deps.prisma);
+  }
+
+  /** Las últimas subastas de la persona (#40), la más reciente primero. */
+  async getAuctionHistory(userId: string): Promise<AuctionHistoryResponse> {
+    return { games: await this.auction.recent(userId, AUCTION_HISTORY_LIMIT) };
   }
 
   /** Busca por nombre sin distinguir mayúsculas, con la misma comparación que el índice único lower(username). */
@@ -55,7 +63,7 @@ export class StatsService {
     });
     const wonPokemonIds = picks.flatMap((pick) => (pick.pokemonId === null ? [] : [pick.pokemonId]));
 
-    return { username: user.username, avatarId: user.avatarPokemonId, stats: buildStats(games, wonPokemonIds, this.catalog) };
+    return { username: user.username, avatarId: user.avatarPokemonId, stats: buildStats(games, wonPokemonIds, this.catalog), auction: await this.auction.stats(userId) };
   }
 
   async getHistory(userId: string, { limit, before }: HistoryOptions): Promise<HistoryPage> {

@@ -125,6 +125,13 @@ export interface RoundRecord {
   picks: RoundRecordPick[];
 }
 
+/** Lo que se guarda de una partida de subasta jugada (#40): el motivo, quién ganó y lo de cada asiento. */
+export interface AuctionGameRecord {
+  reason: GameEndReason;
+  winnerSeat: Seat | null;
+  players: Record<Seat, { team: number[]; spent: number; damage: number }>;
+}
+
 export type Effect =
   | { kind: "schedule"; at: number; timer: TimerId }
   | { kind: "emit"; to: Seat | "all"; event: ServerEvent }
@@ -136,6 +143,8 @@ export type Effect =
   | { kind: "persist_seat_freed" }
   | { kind: "persist_started" }
   | { kind: "persist_round"; record: RoundRecord }
+  /** Subasta (#40): la partida terminó jugada; la sala la guarda si los dos asientos son cuentas. */
+  | { kind: "persist_auction"; record: AuctionGameRecord }
   | {
       kind: "persist_end";
       status: "completed" | "abandoned";

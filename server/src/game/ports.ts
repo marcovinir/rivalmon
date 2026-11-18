@@ -58,6 +58,18 @@ export interface GameRepository {
   abandonUnfinished(): Promise<number>;
 }
 
+/** Una partida de subasta para guardar (#40): siempre entre dos cuentas. */
+export interface AuctionGameInput {
+  roomCode: string;
+  reason: GameEndReason;
+  winnerUserId: string | null;
+  players: { userId: string; seat: Seat; team: number[]; spent: number; damage: number }[];
+}
+
+export interface AuctionHistoryRepository {
+  save(input: AuctionGameInput): Promise<void>;
+}
+
 export const systemClock: Clock = { now: () => Date.now() };
 
 export const timerScheduler: Scheduler = {

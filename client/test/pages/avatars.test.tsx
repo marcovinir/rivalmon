@@ -85,7 +85,7 @@ describe("el avatar en cada pantalla", () => {
   it("perfil propio: el de la sesión (no el de GET /stats), con su nombre para el lector de pantalla", async () => {
     const services = fakeServices();
     signIn(services, { ...ASH, avatarId: 94 });
-    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: NO_STATS }));
+    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: NO_STATS, auction: { played: 0, wins: 0, losses: 0, winRate: null } }));
     renderProfile("/perfil", services);
     const avatar = await screen.findByRole("img", { name: "Avatar: Gengar" });
     expect(avatarImgs(avatar, 94)).toHaveLength(1);
@@ -94,7 +94,7 @@ describe("el avatar en cada pantalla", () => {
   it("perfil ajeno: el de sus estadísticas", async () => {
     const services = fakeServices();
     signIn(services);
-    services.endpoints.stats.forUser = vi.fn(async (username: string) => ({ username, avatarId: 25, stats: NO_STATS }));
+    services.endpoints.stats.forUser = vi.fn(async (username: string) => ({ username, avatarId: 25, stats: NO_STATS, auction: { played: 0, wins: 0, losses: 0, winRate: null } }));
     renderProfile("/jugador/misty", services);
     const avatar = await screen.findByRole("img", { name: "Avatar: Pikachu" });
     expect(avatarImgs(avatar, 25)).toHaveLength(1);
