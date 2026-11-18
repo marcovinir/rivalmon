@@ -7,7 +7,7 @@ const fighter = (id: number, name: string): BattleFighterView => ({
 });
 
 export function presentationBattle(over: Partial<BattleView> = {}): BattleView {
-  return { round: 1, turn: 1, scene: "bosque", deadline: null, choosing: true, stepId: 1, warningUntil: null, rivalIdle: false, confirmed: false, myLineup: null, myMove: null, mySwitch: null, myPause: null,
+  return { round: 1, turn: 1, scene: "bosque", deadline: null, choosing: true, stepId: 1, warningUntil: null, rivalIdle: false, confirmed: false, myLineup: null, myMove: null, mySwitch: null, mustReplace: false, rivalReplacing: false, myReplacement: null, calmTurns: 0,
     myTeam: [fighter(1, "Bulbasaur"), fighter(25, "Pikachu"), fighter(7, "Squirtle"), fighter(4, "Charmander"), fighter(39, "Jigglypuff"), fighter(52, "Meowth")], rivalTeam: [fighter(6, "Charizard")], myTitular: 1, rivalTitular: 6,
     moves: ["Placaje", "Hoja Afilada", "Recuperación", "Desarrollo"].map((name, index) => ({ move: `move-${index}`, name, type: "normal", category: "physical", power: 40, accuracy: 100, pp: 10, maxPp: 35, effectiveness: 1, effect: null })), ...over };
 }

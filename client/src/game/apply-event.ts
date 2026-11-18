@@ -93,7 +93,6 @@ export interface GameView {
   lastSale: AuctionSalePayload | null;
   /** Los últimos turnos del combate, con los nombres de quienes pelearon entonces. Se pierde al recargar. */
   battleLog: BattleLogEntry[];
-  lastRoundEnd: { round: number; loser: Seat; atLimit: boolean } | null;
   /** Hora del servidor menos hora del navegador. */
   clockOffset: number;
   lastError: { code: ErrorCode; message: string } | null;
@@ -109,7 +108,7 @@ export interface BattleLogEntry {
   names: Record<Seat, string>;
   /** Quiénes entraron a pelear en este turno. */
   entered: string[];
-  /** Lo que pasó al empezar el asalto, con quienes estaban entonces. */
+  /** Lo que pasó en la primera salida, con quienes estaban entonces. */
   roundNotes: BattleNote[];
   roundNames: Record<Seat, string>;
   entryNotes: BattleNote[];
@@ -152,7 +151,6 @@ export const initialGameView: GameView = {
   auction: null,
   lastSale: null,
   battleLog: [],
-  lastRoundEnd: null,
   clockOffset: 0,
   lastError: null,
 };
@@ -201,7 +199,6 @@ export function applyServerEvent(view: GameView, event: ServerEvent, receivedAt:
         silhouette: state.silhouette ? silhouetteFrom(state.silhouette, view.silhouette) : null,
         auction: state.auction ?? null,
         battleLog: view.code === state.code ? view.battleLog : [],
-        lastRoundEnd: view.code === state.code ? view.lastRoundEnd : null,
         ended: null,
         clockOffset: clockOffset(state.serverNow, receivedAt),
         lastError: null,
@@ -364,8 +361,9 @@ export function applyServerEvent(view: GameView, event: ServerEvent, receivedAt:
       return { ...view, battleLog: [...view.battleLog, { round, turn, actions, before: battle ?? null, switches, names, entered: switches.map((one) => names[one.seat]), roundNotes, roundNames: fightingNames(view, []), entryNotes, endNotes, abilityNames }].slice(-BATTLE_LOG_MAX) };
     }
 
-    case "battle-round-ended":
-      return { ...view, lastRoundEnd: event.payload };
+    // La caída ya va como nota en su `battle-turn`; este evento es para el sonido.
+    case "battle-fainted":
+      return view;
 
     // Lo que cambia llega en `room-state`.
     case "auction-reveal":

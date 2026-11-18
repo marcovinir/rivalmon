@@ -7,7 +7,7 @@ const GAMES = Number(process.argv[2] ?? 2000);
 const names = Object.keys(STRATEGIES) as (keyof typeof STRATEGIES)[];
 
 /** Segundos estimados por acción de una persona. No es una medición: sirve para comparar. */
-const SECONDS = { bidTurn: 4, reveal: 3, lineup: 15, combatTurn: 7, pause: 10 };
+const SECONDS = { bidTurn: 4, reveal: 3, lineup: 15, combatTurn: 7, replacement: 4 };
 
 const percent = (part: number, total: number) => `${((part / total) * 100).toFixed(0)} %`;
 const percentile = (sorted: number[], share: number) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * share))]!;
@@ -50,7 +50,7 @@ function report(title: string, options: SimulationOptions): void {
         traps += result.traps;
         turns.push(...result.turnsPerRound);
         const combatTurns = result.turnsPerRound.reduce((sum, count) => sum + count, 0);
-        minutes.push((result.bidTurns * SECONDS.bidTurn + 12 * SECONDS.reveal + SECONDS.lineup + combatTurns * SECONDS.combatTurn + (result.rounds - 1) * SECONDS.pause) / 60);
+        minutes.push((result.bidTurns * SECONDS.bidTurn + 12 * SECONDS.reveal + SECONDS.lineup + combatTurns * SECONDS.combatTurn + (result.rounds - 1) * SECONDS.replacement) / 60);
       }
       cells.push(percent(won, GAMES).padEnd(14));
     }
@@ -62,8 +62,8 @@ function report(title: string, options: SimulationOptions): void {
   minutes.sort((a, b) => a - b);
   turns.sort((a, b) => a - b);
   console.log(`\nEspejo (misma estrategia), gana el asiento 1: ${percent(firstSeatWins, GAMES * names.length)}`);
-  console.log(`Turnos por asalto: mediana ${percentile(turns, 0.5)}, p90 ${percentile(turns, 0.9)}`);
-  console.log(`Asaltos por partida: ${(rounds / games).toFixed(1)}; llegan al límite: ${percent(atLimit, rounds)}`);
+  console.log(`Turnos entre caídas: mediana ${percentile(turns, 0.5)}, p90 ${percentile(turns, 0.9)}`);
+  console.log(`Caídas por partida: ${(rounds / games).toFixed(1)}; por el límite de turnos: ${percent(atLimit, rounds)}`);
   console.log(`Críticos por partida: ${(criticals / games).toFixed(1)}; trampas por partida: ${(traps / games).toFixed(1)}`);
   console.log(`Duración estimada: mediana ${percentile(minutes, 0.5).toFixed(1)} min, p90 ${percentile(minutes, 0.9).toFixed(1)} min`);
 }

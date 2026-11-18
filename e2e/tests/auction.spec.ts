@@ -124,7 +124,7 @@ test("una partida completa: puja, revelación, alineación, combate, resumen y r
 
   // A 360 px el rótulo del turno no pisa el recuadro del rival.
   const hud = await ash.page.locator("[data-arena] .battle-hud").first().boundingBox();
-  const pill = await ash.page.getByText(/^Asalto \d+ · Turno/).boundingBox();
+  const pill = await ash.page.getByText(/^Turno \d+/).boundingBox();
   expect(hud!.x + hud!.width).toBeLessThanOrEqual(pill!.x);
   // Los movimientos dicen sus PP, y la habilidad sale al poner el cursor.
   await expect(ash.page.locator(".battle-move").first()).toContainText(/PP \d+\/\d+/);
@@ -140,29 +140,29 @@ test("una partida completa: puja, revelación, alineación, combate, resumen y r
   await misty.page.locator(".battle-move:enabled").first().click();
   for (const page of pages) await expect(page.getByRole("meter", { name: `PS de ${entering}` })).toBeVisible({ timeout: 15_000 });
 
-  // Se pelea hasta el final, eligiendo movimiento y titular. Recargar en la primera pausa la conserva.
+  // Se pelea hasta el final sin pausas (#57): al caer un Pokémon, quien lo perdió elige al siguiente en la misma pantalla.
+  // Recargar la primera vez que hay que elegir lo conserva, y nunca sale un rótulo de K.O.
   const verdict = (page: Page) => page.getByRole("heading", { name: /^(Ganaste|Perdiste)$/ });
-  let reloadedInPause = false;
+  const whoNext = (page: Page) => page.getByRole("heading", { name: "¿Quién sale ahora?" });
+  let reloadedWhileChoosing = false;
   for (let tick = 0; tick < 1500 && !(await verdict(ash.page).isVisible()); tick++) {
     for (const page of pages) {
-      if (!reloadedInPause && (await page.getByRole("heading", { name: "Pausa entre asaltos" }).isVisible())) {
-        reloadedInPause = true;
-        await expectFits(page, "pausa");
+      await expect.soft(page.getByText("K.O.", { exact: true })).toHaveCount(0);
+      if (!reloadedWhileChoosing && (await whoNext(page).isVisible())) {
+        reloadedWhileChoosing = true;
+        await expectFits(page, "elegir al siguiente");
         await page.reload();
-        await expect(page.getByRole("heading", { name: "Pausa entre asaltos" })).toBeVisible({ timeout: 30_000 });
+        await expect(whoNext(page)).toBeVisible({ timeout: 30_000 });
       }
+      const next = page.locator("button.battle-replacement:enabled").first();
+      if (await next.isVisible()) await next.click({ timeout: 500 }).catch(() => undefined);
       const move = page.locator(".battle-move:enabled").first();
       if (await move.isVisible()) await move.click({ timeout: 500 }).catch(() => undefined);
-      const confirm = page.getByRole("button", { name: "Confirmar" });
-      if (await confirm.isVisible()) {
-        if (await confirm.isDisabled()) await page.getByRole("button", { name: /^Sacar a/ }).first().click({ timeout: 500 }).catch(() => undefined);
-        await confirm.click({ timeout: 500 }).catch(() => undefined);
-      }
     }
     await ash.page.waitForTimeout(150);
   }
   for (const page of pages) await expect(verdict(page)).toBeVisible({ timeout: 60_000 });
-  expect(reloadedInPause, "hubo una pausa").toBe(true);
+  expect(reloadedWhileChoosing, "alguien tuvo que elegir al siguiente").toBe(true);
   await expect(ash.page.getByRole("region", { name: "Resumen del combate" })).toBeVisible();
   await expectFits(ash.page, "resumen");
 

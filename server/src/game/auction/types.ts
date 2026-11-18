@@ -1,4 +1,4 @@
-import type { AuctionConfig, AuctionRevealEntry, AuctionScene, BattleMove, BattleNote, GamePhase, PauseChoice, Seat } from "@pokemon-minigames/shared";
+import type { AuctionConfig, AuctionRevealEntry, AuctionScene, BattleMove, BattleNote, GamePhase, Seat } from "@pokemon-minigames/shared";
 import type { PokemonCatalog } from "../../catalog/pokemon-catalog.js";
 import type { GameOutcome, PlayerState } from "../engine/types.js";
 import type { Rng } from "../rng.js";
@@ -43,17 +43,22 @@ export interface BattleIdle {
 export interface AuctionBattle {
   fighters: Record<Seat, Fighter[]>;
   titular: Record<Seat, number | null>;
+  /** El tramo entre caídas: cada entrada de un reemplazo abre uno. Ya no se muestra; `turn` cuenta toda la partida. */
   round: number;
   turn: number;
   /** Lo que cada uno decidió en el paso actual. Nunca sale hacia el rival antes de resolverse. */
   lineups: Partial<Record<Seat, number[]>>;
   moves: Partial<Record<Seat, BattleMove>>;
   switches: Partial<Record<Seat, number>>;
-  pauses: Partial<Record<Seat, PauseChoice>>;
+  /** Quién tiene que elegir al siguiente porque se le debilitó el titular, y a quién eligió (privado hasta entrar). */
+  replacing: Seat[];
+  replacements: Partial<Record<Seat, number>>;
+  /** Los titulares que cayeron en el turno que se está animando. */
+  fallen: Seat[];
+  /** Turnos seguidos sin caídas. */
+  calmTurns: number;
   /** Lo que pasó al salir a pelear: va con el turno siguiente. */
   entryNotes: BattleNote[];
-  /** Quién perdió el último asalto: decide si los dos se quedan sin Pokémon a la vez. */
-  lastLoser: Seat | null;
   deadline: number | null;
   step: number;
   /** Se está eligiendo movimiento, sin reloj. */
@@ -61,13 +66,11 @@ export interface AuctionBattle {
   /** El aviso de inactividad de cada uno: si fuera común, responder delataría que aún no elegiste. */
   idle: Record<Seat, BattleIdle>;
   scene: AuctionScene;
-  /** El asalto ya terminó: al acabar la animación se abre la pausa. */
-  roundOver: boolean;
   damage: Record<Seat, number>;
 }
 
 export interface AuctionState {
-  phase: Extract<GamePhase, "waiting" | "starting" | "auction" | "reveal" | "lineup" | "battle" | "battle_pause" | "finished">;
+  phase: Extract<GamePhase, "waiting" | "starting" | "auction" | "reveal" | "lineup" | "battle" | "finished">;
   config: AuctionConfig;
   players: Partial<Record<Seat, PlayerState>>;
   lots: AuctionLot[];

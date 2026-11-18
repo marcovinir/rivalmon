@@ -1,4 +1,4 @@
-import type { BattleMove, PauseChoice, BidStep, ServerEvent, ServerEventName, TypeName } from "@pokemon-minigames/shared";
+import type { BattleMove, BidStep, ServerEvent, ServerEventName, TypeName } from "@pokemon-minigames/shared";
 import type { StoreApi } from "zustand";
 import type { GameStoreState } from "./store";
 
@@ -27,7 +27,6 @@ export interface GameClientApi {
   lineup(order: number[]): void;
   move(move: BattleMove): void;
   switchTo(pokemonId: number): void;
-  pauseConfirm(choice: PauseChoice): void;
   /** Sale de la sala: cancela la espera o abandona la partida. */
   leave(): void;
   /** Pide la revancha o acepta la que pidió el rival. */
@@ -71,7 +70,7 @@ const SERVER_EVENTS: Record<ServerEventName, true> = {
   "auction-sale": true,
   "auction-reveal": true,
   "battle-turn": true,
-  "battle-round-ended": true,
+  "battle-fainted": true,
   "silhouette-round-result": true,
 };
 /**
@@ -136,10 +135,6 @@ export class GameClient implements GameClientApi {
 
   switchTo(pokemonId: number): void {
     this.socket?.emit("auction-switch", { pokemonId });
-  }
-
-  pauseConfirm(choice: PauseChoice): void {
-    this.socket?.emit("auction-pause", { choice });
   }
 
   leave(): void {

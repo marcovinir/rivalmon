@@ -1,4 +1,4 @@
-import { AUCTION_SCENES, type AuctionConfig, BID_STEPS, battleTurnDurationMs, type BattleMove, type BidStep, type ErrorCode, type PauseChoice, type Seat, type ServerEvent } from "@pokemon-minigames/shared";
+import { AUCTION_SCENES, type AuctionConfig, BID_STEPS, battleTurnDurationMs, type BattleMove, type BattleNote, type BidStep, type ErrorCode, type Seat, type ServerEvent } from "@pokemon-minigames/shared";
 import {
   RECONNECT_GRACE_SECONDS,
   REMATCH_ROOM_TTL_SECONDS,
@@ -10,8 +10,8 @@ import {
 import { type Effect, type GameEvent, type GameOutcome, type PlayerState, type SeatOccupant, type TimerId, otherSeat } from "../engine/types.js";
 import { toPokemonView } from "../engine/view.js";
 import { pickOne } from "../rng.js";
-import { type Fighter, availableMoves, bestMove, bothFallenLoser, clearStages, endOfTurn, enterBattle, leaveBattle, newFighter, resolveTurn, roundLimitLoser } from "./combat.js";
-import { AUTO_LOT_MS, INACTIVITY_MS, INACTIVITY_WARNING_MS, LINEUP_MS, MAX_STILL_HERE, MAX_TURNS_PER_ROUND, PAUSE_MS, REVEAL_MS, STARTING_MONEY, TEAM_SIZE, TRAP_ODDS, drawLots, startingPrice } from "./rules.js";
+import { type Fighter, availableMoves, bestMove, bothFallenLoser, endOfTurn, enterBattle, leaveBattle, newFighter, resolveTurn, roundLimitLoser } from "./combat.js";
+import { AUTO_LOT_MS, INACTIVITY_MS, INACTIVITY_WARNING_MS, LINEUP_MS, MAX_STILL_HERE, MAX_CALM_TURNS, REVEAL_MS, STARTING_MONEY, TEAM_SIZE, TRAP_ODDS, drawLots, startingPrice } from "./rules.js";
 import type { AuctionDeps, AuctionLot, AuctionState } from "./types.js";
 import { auctionLimit, buildAuctionGameEnded } from "./view.js";
 
@@ -37,7 +37,7 @@ function newPlayer(seat: Seat, { userId, username, guest, avatarId }: SeatOccupa
   return { seat, userId, username, ...(guest ? { guest: true } : {}), ...(avatarId ? { avatarId } : {}), connected: false, totalStats: 0, team: [] };
 }
 
-const inGame = (s: AuctionState): boolean => s.phase === "auction" || s.phase === "reveal" || s.phase === "lineup" || s.phase === "battle" || s.phase === "battle_pause";
+const inGame = (s: AuctionState): boolean => s.phase === "auction" || s.phase === "reveal" || s.phase === "lineup" || s.phase === "battle";
 
 function emit(c: Ctx, to: Seat | "all", event: ServerEvent): void {
   c.fx.push({ kind: "emit", to, event });
@@ -115,9 +115,6 @@ export function reduceAuction(prev: AuctionState, event: GameEvent, now: number,
       break;
     case "CHOOSE_SWITCH":
       onSwitch(c, event.seat, event.pokemonId);
-      break;
-    case "PAUSE_CONFIRM":
-      onPauseConfirm(c, event.seat, event.choice);
       break;
     case "LEAVE":
       onLeave(c, event.seat);
@@ -257,7 +254,7 @@ function onTimer(c: Ctx, timer: TimerId): void {
       if (s.battle?.step === timer.step) onBattleTimer(c);
       break;
     case "battle_idle":
-      if (s.phase === "battle" && s.battle?.choosing && s.battle.step === timer.step && s.battle.idle[timer.seat].at === timer.at) onBattleIdle(c, timer.seat);
+      if (s.phase === "battle" && s.battle && deciding(c) && s.battle.step === timer.step && s.battle.idle[timer.seat].at === timer.at) onBattleIdle(c, timer.seat);
       break;
     case "choose":
     case "round":
@@ -462,15 +459,16 @@ function revealAll(c: Ctx): void {
     lineups: {},
     moves: {},
     switches: {},
-    pauses: {},
+    replacing: [],
+    replacements: {},
+    fallen: [],
+    calmTurns: 0,
     entryNotes: [],
-    lastLoser: null,
     deadline: null,
     step: 0,
     choosing: false,
     idle: { 1: { at: 0, warningUntil: null, stillHere: 0 }, 2: { at: 0, warningUntil: null, stillHere: 0 } },
     scene: pickOne(c.deps.rng, AUCTION_SCENES),
-    roundOver: false,
     damage: { 1: 0, 2: 0 },
   };
   startStep(c, REVEAL_MS);
@@ -492,7 +490,6 @@ function onBattleTimer(c: Ctx): void {
   const battle = s.battle!;
   if (s.phase === "reveal") return beginLineup(c);
   if (s.phase === "lineup") return beginFirstRound(c);
-  if (s.phase === "battle_pause") return closePause(c);
   if (s.phase !== "battle") return;
   if (!battle.choosing) afterAnimation(c);
 }
@@ -500,7 +497,7 @@ function onBattleTimer(c: Ctx): void {
 function onReady(c: Ctx, seat: Seat): void {
   const { s } = c;
   // Un «Listo» doble o justo al acabar la revelación llega tarde: no es un error de nadie.
-  if (s.phase === "lineup" || s.phase === "battle" || s.phase === "battle_pause") return;
+  if (s.phase === "lineup" || s.phase === "battle") return;
   if (s.phase !== "reveal") return reject(c, seat, "WRONG_PHASE", "Ahora no hay nada que confirmar");
   if (!s.readyForBattle.includes(seat)) s.readyForBattle.push(seat);
   if (s.readyForBattle.length === 2) beginLineup(c);
@@ -534,15 +531,14 @@ function beginFirstRound(c: Ctx): void {
   beginRound(c);
 }
 
+/** La primera salida: sus notas de entrada ya van en el estado inicial y se cuentan con el primer turno. */
 function beginRound(c: Ctx): void {
   const { s } = c;
   const battle = s.battle!;
   s.phase = "battle";
-  battle.round++;
+  battle.round = 1;
   battle.turn = 0;
-  for (const seat of [1, 2] as const) for (const fighter of battle.fighters[seat]) clearStages(fighter);
   battle.entryNotes = [...enterBattle(titularOf(c, 1), titularOf(c, 2), 1), ...enterBattle(titularOf(c, 2), titularOf(c, 1), 2)];
-  battle.roundOver = false;
   beginTurn(c);
 }
 
@@ -578,6 +574,10 @@ function onBattleIdle(c: Ctx, seat: Seat): void {
   if (idle.warningUntil !== null || idle.stillHere >= MAX_STILL_HERE) {
     // Juega solo él: el rival conserva su tiempo.
     idle.warningUntil = null;
+    if (battle.replacing.includes(seat)) {
+      battle.replacements[seat] = battle.fighters[seat].find((fighter) => fighter.hp > 0)!.pokemon.id;
+      return afterReplacement(c, seat);
+    }
     battle.moves[seat] = bestMove(titularOf(c, seat), titularOf(c, otherSeat(seat)));
     return afterChoice(c, seat);
   }
@@ -588,11 +588,19 @@ function onBattleIdle(c: Ctx, seat: Seat): void {
   if (hasChosen(c, otherSeat(seat))) c.fx.push({ kind: "send_state", to: otherSeat(seat) });
 }
 
-const hasChosen = (c: Ctx, seat: Seat): boolean => c.s.battle!.moves[seat] !== undefined || c.s.battle!.switches[seat] !== undefined;
+const hasChosen = (c: Ctx, seat: Seat): boolean => {
+  const battle = c.s.battle!;
+  // Durante un reemplazo, quien no tiene que elegir ya está listo.
+  if (battle.replacing.length > 0) return !battle.replacing.includes(seat) || battle.replacements[seat] !== undefined;
+  return battle.moves[seat] !== undefined || battle.switches[seat] !== undefined;
+};
+
+/** Se elige movimiento o al siguiente Pokémon: los dos usan el aviso «¿Sigues ahí?». */
+const deciding = (c: Ctx): boolean => c.s.battle!.choosing || c.s.battle!.replacing.length > 0;
 
 function onBattleStillHere(c: Ctx, seat: Seat, turnId: number): void {
   const battle = c.s.battle!;
-  if (turnId !== battle.step || !battle.choosing || hasChosen(c, seat)) return reject(c, seat, "NOT_YOUR_TURN", "Aún no es tu turno");
+  if (turnId !== battle.step || !deciding(c) || hasChosen(c, seat)) return reject(c, seat, "NOT_YOUR_TURN", "Aún no es tu turno");
   const idle = battle.idle[seat];
   if (idle.warningUntil === null) return;
   idle.warningUntil = null;
@@ -622,6 +630,7 @@ function onMove(c: Ctx, seat: Seat, move: BattleMove): void {
 function onSwitch(c: Ctx, seat: Seat, pokemonId: number): void {
   const { s } = c;
   const battle = s.battle;
+  if (s.phase === "battle" && battle?.replacing.includes(seat)) return onReplacement(c, seat, pokemonId);
   if (s.phase !== "battle" || !battle?.choosing) return reject(c, seat, "WRONG_PHASE", "Ahora no se puede cambiar");
   const valid = pokemonId !== battle.titular[seat] && battle.fighters[seat].some((fighter) => fighter.pokemon.id === pokemonId && fighter.hp > 0);
   if (!valid) return reject(c, seat, "INVALID_CHOICE", "Ese cambio no es válido");
@@ -657,17 +666,23 @@ function resolveCurrentTurn(c: Ctx): void {
   const actions = resolveTurn(sides, { 1: choiceOf(1), 2: choiceOf(2) }, c.deps.rng);
   const endNotes = endOfTurn(sides);
   for (const action of actions) battle.damage[action.actor] += action.damage;
+
+  // La caída se decide antes de publicar el turno: su nota cierra la animación, también si es por el límite.
+  battle.calmTurns++;
+  let fallen = ([1, 2] as const).filter((seat) => sides[seat].hp <= 0);
+  const atLimit = fallen.length === 0 && battle.calmTurns >= MAX_CALM_TURNS;
+  if (atLimit) {
+    const loser = roundLimitLoser(sides, c.deps.rng);
+    sides[loser].hp = 0;
+    fallen = [loser];
+  }
+  endNotes.push(...fallen.map((seat): BattleNote => ({ kind: "fainted", seat, atLimit })));
   const presentation = { actions, switches, roundNotes, entryNotes, endNotes };
   emit(c, "all", { name: "battle-turn", payload: { round: battle.round, turn: battle.turn, ...presentation } });
-
-  const fallen = ([1, 2] as const).filter((seat) => sides[seat].hp <= 0);
-  if (fallen.length > 0 || battle.turn >= MAX_TURNS_PER_ROUND) {
-    const atLimit = fallen.length === 0;
-    const loser = atLimit ? roundLimitLoser(sides, c.deps.rng) : fallen.length === 2 ? bothFallenLoser(sides, c.deps.rng) : fallen[0]!;
-    sides[loser].hp = 0;
-    battle.roundOver = true;
-    battle.lastLoser = loser;
-    emit(c, "all", { name: "battle-round-ended", payload: { round: battle.round, loser, atLimit } });
+  battle.fallen = fallen;
+  if (fallen.length > 0) {
+    battle.calmTurns = 0;
+    emit(c, "all", { name: "battle-fainted", payload: { fallen, atLimit } });
   }
   battle.step = c.s.nextTurnId++;
   battle.deadline = null;
@@ -678,56 +693,57 @@ function resolveCurrentTurn(c: Ctx): void {
   sendStates(c);
 }
 
-/** Terminó la animación: otro turno, o la pausa si cayó alguien. */
+/** Terminó la animación: otro turno, elegir al siguiente si cayó alguien, o el final. */
 function afterAnimation(c: Ctx): void {
-  const { s } = c;
-  const battle = s.battle!;
-  if (battle.roundOver) {
-    s.phase = "battle_pause";
-    battle.pauses = {};
-    for (const seat of [1, 2] as const) if (titularOf(c, seat)?.hp === 0) battle.titular[seat] = null;
-    startStep(c, PAUSE_MS);
-    sendStates(c);
+  const battle = c.s.battle!;
+  const fallen = battle.fallen;
+  battle.fallen = [];
+  if (fallen.length === 0) return beginTurn(c);
+  const out = fallen.filter((seat) => !battle.fighters[seat].some((fighter) => fighter.hp > 0));
+  // Sin nadie los dos a la vez: pierde el más lento de los dos que cayeron.
+  if (out.length === 2) return finish(c, "completed", otherSeat(bothFallenLoser({ 1: titularOf(c, 1), 2: titularOf(c, 2) }, c.deps.rng)));
+  if (out.length === 1) return finish(c, "completed", otherSeat(out[0]!));
+  battle.replacing = fallen;
+  battle.replacements = {};
+  battle.step = c.s.nextTurnId++;
+  for (const seat of fallen) {
+    battle.idle[seat] = { at: 0, warningUntil: null, stillHere: 0 };
+    idleIn(c, seat, INACTIVITY_MS);
+  }
+  sendStates(c);
+}
+
+function onReplacement(c: Ctx, seat: Seat, pokemonId: number): void {
+  const battle = c.s.battle!;
+  if (battle.replacements[seat] !== undefined) return reject(c, seat, "WRONG_PHASE", "Ya elegiste al siguiente");
+  const valid = pokemonId !== battle.titular[seat] && battle.fighters[seat].some((fighter) => fighter.pokemon.id === pokemonId && fighter.hp > 0);
+  if (!valid) return reject(c, seat, "INVALID_CHOICE", "Ese Pokémon no puede salir");
+  battle.replacements[seat] = pokemonId;
+  battle.idle[seat].warningUntil = null;
+  afterReplacement(c, seat);
+}
+
+/** Cuando han elegido todos los que debían, entran a la vez en un tramo nuevo; hasta entonces el rival no sabe a quién. */
+function afterReplacement(c: Ctx, seat: Seat): void {
+  const battle = c.s.battle!;
+  if (battle.replacing.some((one) => battle.replacements[one] === undefined)) {
+    c.fx.push({ kind: "send_state", to: seat });
     return;
   }
-  beginTurn(c);
-}
-
-function onPauseConfirm(c: Ctx, seat: Seat, choice: PauseChoice): void {
-  const { s } = c;
-  if (s.phase !== "battle_pause") return reject(c, seat, "WRONG_PHASE", "Ahora no hay pausa");
-  if (!validPause(c, seat, choice)) return reject(c, seat, "INVALID_CHOICE", "Esa elección no es válida");
-  const battle = s.battle!;
-  battle.pauses[seat] = choice;
-  // Solo a quien confirmó: hasta cerrar la pausa el rival no ve el titular.
-  c.fx.push({ kind: "send_state", to: seat });
-  if (battle.pauses[otherSeat(seat)]) closePause(c);
-}
-
-/** Un titular propio y vivo. */
-function validPause(c: Ctx, seat: Seat, choice: PauseChoice): boolean {
-  if (typeof choice !== "object" || choice === null) return false;
-  return c.s.battle!.fighters[seat].some((fighter) => fighter.pokemon.id === choice.titular && fighter.hp > 0);
-}
-
-function closePause(c: Ctx): void {
-  const { s } = c;
-  const battle = s.battle!;
-  for (const seat of [1, 2] as const) {
-    const choice = battle.pauses[seat];
-    if (choice) {
-      const out = battle.fighters[seat].find((fighter) => fighter.pokemon.id === battle.titular[seat]);
-      if (out && out.pokemon.id !== choice.titular) leaveBattle(out);
-      battle.titular[seat] = choice.titular;
-    }
-    // No decidió: sale el primero vivo, en su orden. Quien ganó el asalto sigue como estaba.
-    else if (battle.titular[seat] === null) battle.titular[seat] = battle.fighters[seat].find((fighter) => fighter.hp > 0)?.pokemon.id ?? null;
-  }
-  const out = ([1, 2] as const).filter((seat) => battle.titular[seat] === null);
-  // Sin nadie los dos a la vez: pierde quien perdió este último asalto.
-  if (out.length > 0) return finish(c, "completed", otherSeat(out.length === 2 ? battle.lastLoser ?? 1 : out[0]!));
-  battle.pauses = {};
-  beginRound(c);
+  const switches = battle.replacing.map((one) => {
+    leaveBattle(titularOf(c, one));
+    battle.titular[one] = battle.replacements[one]!;
+    return { seat: one, pokemonId: battle.replacements[one]! };
+  });
+  const entryNotes = switches.flatMap(({ seat: one }) => enterBattle(titularOf(c, one), titularOf(c, otherSeat(one)), one));
+  battle.replacing = [];
+  battle.replacements = {};
+  battle.round++;
+  const presentation = { actions: [], switches, entryNotes };
+  emit(c, "all", { name: "battle-turn", payload: { round: battle.round, turn: battle.turn, ...presentation } });
+  battle.step = c.s.nextTurnId++;
+  schedule(c, c.now + battleTurnDurationMs(presentation), { kind: "battle", step: battle.step });
+  sendStates(c);
 }
 
 function finish(c: Ctx, reason: GameOutcome["reason"], winnerSeat: Seat | null): void {

@@ -65,8 +65,12 @@ function battleView(state: AuctionState, seat: Seat, catalog: PokemonCatalog): B
   const mineId = battle.titular[seat];
   const mine = battle.fighters[seat].find((fighter) => fighter.pokemon.id === mineId);
   const rivalFighter = inFight ? battle.fighters[rival].find((fighter) => fighter.pokemon.id === battle.titular[rival]) : undefined;
-  const chosen = battle.moves[seat] !== undefined || battle.switches[seat] !== undefined;
-  const confirmed = state.phase === "reveal" ? state.readyForBattle.includes(seat) : state.phase === "lineup" ? battle.lineups[seat] !== undefined : state.phase === "battle_pause" ? battle.pauses[seat] !== undefined : chosen;
+  const mustReplace = inFight && battle.replacing.includes(seat);
+  const rivalReplacing = inFight && battle.replacing.includes(rival);
+  // Durante un reemplazo, quien no tiene que elegir ya está listo.
+  const chosen = battle.replacing.length > 0 ? !mustReplace || battle.replacements[seat] !== undefined : battle.moves[seat] !== undefined || battle.switches[seat] !== undefined;
+  const deciding = inFight && (battle.choosing || battle.replacing.length > 0);
+  const confirmed = state.phase === "reveal" ? state.readyForBattle.includes(seat) : state.phase === "lineup" ? battle.lineups[seat] !== undefined : chosen;
   return {
     round: battle.round,
     turn: battle.turn,
@@ -75,14 +79,17 @@ function battleView(state: AuctionState, seat: Seat, catalog: PokemonCatalog): B
     deadline: inFight ? null : battle.deadline,
     choosing: inFight && battle.choosing,
     stepId: battle.step,
-    warningUntil: inFight && battle.choosing ? battle.idle[seat].warningUntil : null,
+    warningUntil: deciding && !chosen ? battle.idle[seat].warningUntil : null,
     // Solo a quien ya eligió: a los demás les diría si el rival eligió.
-    rivalIdle: inFight && battle.choosing && chosen && battle.idle[rival].warningUntil !== null,
+    rivalIdle: deciding && chosen && !(battle.replacing.length > 0 && !rivalReplacing) && battle.idle[rival].warningUntil !== null,
     confirmed,
     myLineup: state.phase === "lineup" ? structuredClone(battle.lineups[seat] ?? null) : null,
     myMove: battle.moves[seat] ?? null,
     mySwitch: battle.switches[seat] ?? null,
-    myPause: state.phase === "battle_pause" ? structuredClone(battle.pauses[seat] ?? null) : null,
+    mustReplace,
+    rivalReplacing,
+    myReplacement: mustReplace ? battle.replacements[seat] ?? null : null,
+    calmTurns: battle.calmTurns,
     myTeam: battle.fighters[seat].map((fighter) => fighterView(fighter, catalog)),
     // En orden de compra: su alineación diría quién es su reserva.
     rivalTeam: state.teams[rival].map((id) => fighterView(battle.fighters[rival].find((fighter) => fighter.pokemon.id === id)!, catalog)),

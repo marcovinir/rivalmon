@@ -50,15 +50,16 @@ function playTurn(h: AuctionHarness, a?: BattleMove, b?: BattleMove): void {
   finishAnimation(h);
 }
 
-function toPause(seed = 1): AuctionHarness {
+/** Juega hasta que alguien tiene que elegir al siguiente Pokémon (#57). */
+function toReplacing(seed = 1): AuctionHarness {
   const h = toBattle(seed);
-  for (let turn = 0; turn < 25 && h.state.phase === "battle"; turn++) playTurn(h);
-  expect(h.state.phase).toBe("battle_pause");
+  for (let turn = 0; turn < 25 && h.state.phase === "battle" && h.state.battle!.replacing.length === 0; turn++) playTurn(h);
+  expect(h.state.battle!.replacing.length).toBeGreaterThan(0);
   return h;
 }
 
-/** Quién perdió el titular en la pausa actual. */
-const loserOf = (h: AuctionHarness): Seat => (h.state.battle!.titular[1] === null ? 1 : 2);
+/** Quién tiene que elegir al siguiente. */
+const loserOf = (h: AuctionHarness): Seat => h.state.battle!.replacing[0]!;
 
 describe("revelación y alineación", () => {
   it("la animación incluye todos los pasos y no abre el siguiente turno antes del cierre", () => {
@@ -72,7 +73,7 @@ describe("revelación y alineación", () => {
     expect(h.state.battle!.choosing).toBe(false);
     expect(h.state.phase).toBe("battle");
     h.advance(1);
-    expect(h.state.battle!.choosing || h.state.phase === "battle_pause").toBe(true);
+    expect(h.state.battle!.choosing || h.state.battle!.replacing.length > 0 || h.state.phase === "finished").toBe(true);
   });
 
   it("desconectarse durante los efectos no detiene el cierre ni reinicia la gracia", () => {
@@ -82,7 +83,7 @@ describe("revelación y alineación", () => {
     const duration = battleTurnDurationMs(h.payloads("battle-turn").at(-1)!);
     h.dispatch({ type: "PLAYER_DISCONNECTED", seat: 1 });
     h.advance(duration);
-    expect(h.state.battle!.choosing || h.state.phase === "battle_pause").toBe(true);
+    expect(h.state.battle!.choosing || h.state.battle!.replacing.length > 0 || h.state.phase === "finished").toBe(true);
     h.advance(30_000 - duration);
     expect(h.state.outcome).toEqual({ winnerSeat: 2, reason: "disconnect" });
   });
@@ -276,21 +277,9 @@ describe("turnos", () => {
     expect(rival[0]!).toHaveProperty("status");
   });
 
-  it("los niveles de stats se limpian al empezar otro asalto, y el estado sigue", () => {
-    const h = toPause();
-    for (const seat of [1, 2] as const) for (const fighter of h.state.battle!.fighters[seat]) {
-      fighter.stages.attack = 2;
-      if (fighter.hp > 0) fighter.status = "burn";
-    }
-    h.advance(15_000);
-    for (const fighter of h.state.battle!.fighters[1]) {
-      expect(fighter.stages.attack).toBe(0);
-      if (fighter.hp > 0) expect(fighter.status).toBe("burn");
-    }
-  });
-
-  it("en un doble K.O. pierde el más lento también si es el asiento 2", () => {
+  it("en un doble K.O. sin reservas pierde el más lento también si es el asiento 2", () => {
     const h = toBattle();
+    for (const seat of [1, 2] as const) for (const one of h.state.battle!.fighters[seat]) if (one.pokemon.id !== h.state.battle!.titular[seat]) one.hp = 0;
     const [a, b] = [1, 2].map((seat) => h.state.battle!.fighters[seat as Seat].find((one) => one.pokemon.id === h.state.battle!.titular[seat as Seat])!);
     for (const fighter of [a!, b!]) {
       fighter.hp = 1;
@@ -300,10 +289,12 @@ describe("turnos", () => {
     b!.pokemon.stats.speed = 10;
     h.dispatch({ type: "CHOOSE_MOVE", seat: 1, move: moveOf(h, 1) });
     h.dispatch({ type: "CHOOSE_MOVE", seat: 2, move: moveOf(h, 2) });
-    expect(h.payloads("battle-round-ended")).toEqual([{ round: 1, loser: 2, atLimit: false }]);
+    expect(h.payloads("battle-fainted")).toEqual([{ fallen: [1, 2], atLimit: false }]);
+    finishAnimation(h);
+    expect(h.state.outcome).toEqual({ winnerSeat: 1, reason: "completed" });
   });
 
-  it("si el estado debilita a los dos a la vez, un único perdedor: el más lento", () => {
+  it("si el estado debilita a los dos a la vez y les quedan reservas, eligen los dos", () => {
     const h = toBattle();
     const [a, b] = [1, 2].map((seat) => h.state.battle!.fighters[seat as Seat].find((one) => one.pokemon.id === h.state.battle!.titular[seat as Seat])!);
     for (const fighter of [a!, b!]) {
@@ -315,94 +306,33 @@ describe("turnos", () => {
     h.dispatch({ type: "CHOOSE_MOVE", seat: 1, move: moveOf(h, 1) });
     h.dispatch({ type: "CHOOSE_MOVE", seat: 2, move: moveOf(h, 2) });
     for (const seat of [1, 2] as const) expect(h.state.battle!.fighters[seat].find((one) => one.pokemon.id === h.state.battle!.titular[seat])!.hp).toBe(0);
-    expect(h.payloads("battle-round-ended")).toEqual([{ round: 1, loser: 1, atLimit: false }]);
+    expect(h.payloads("battle-fainted")).toEqual([{ fallen: [1, 2], atLimit: false }]);
     finishAnimation(h);
-    expect(h.state.phase).toBe("battle_pause");
-    h.advance(15_000);
-    expect(h.state.phase).toBe("battle");
-  });
-
-  it("al debilitarse un Pokémon, avisa y tras la animación abre la pausa", () => {
-    const h = toBattle();
-    for (let turn = 0; turn < 25 && h.payloads("battle-round-ended").length === 0; turn++) {
-      h.dispatch({ type: "CHOOSE_MOVE", seat: 1, move: moveOf(h, 1) });
-      h.dispatch({ type: "CHOOSE_MOVE", seat: 2, move: moveOf(h, 2) });
-      if (h.payloads("battle-round-ended").length === 0) finishAnimation(h);
-    }
-    expect(h.payloads("battle-round-ended")[0]).toMatchObject({ round: 1, atLimit: false });
-    expect(h.state.phase).toBe("battle");
+    expect(h.state.battle!.replacing).toEqual([1, 2]);
+    h.advance(75_000);
     finishAnimation(h);
-    expect(h.state.phase).toBe("battle_pause");
-  });
-
-  it("el límite de 20 turnos también cierra el asalto, sin dejarlo eterno", () => {
-    const h = toBattle();
-    for (const seat of [1, 2] as const) {
-      for (const fighter of h.state.battle!.fighters[seat]) {
-        fighter.hp = 5000;
-        fighter.maxHp = 5000;
-      }
-    }
-    for (let turn = 0; turn < 20; turn++) playTurn(h);
-    expect(h.payloads("battle-round-ended")[0]).toMatchObject({ round: 1, atLimit: true });
-    expect(h.state.phase).toBe("battle_pause");
-    expect(battle(h, 1).round).toBe(1);
-  });
-});
-
-describe("la pausa", () => {
-  it("dura 15 s para los dos, y el titular rival se oculta mientras se decide", () => {
-    const h = toPause();
-    expect(battle(h, 1).deadline).toBe(h.now + 15_000);
-    expect(battle(h, 1).rivalTitular).toBeNull();
-    expect(battle(h, 2).rivalTitular).toBeNull();
-  });
-
-  it("sin confirmar, sale el primer vivo en orden; quien ganó sigue si no cambia", () => {
-    const h = toPause();
-    const loser = loserOf(h);
-    const winner: Seat = loser === 1 ? 2 : 1;
-    const stays = h.state.battle!.titular[winner];
-    h.advance(15_000);
-    expect(h.state.phase).toBe("battle");
-    expect(battle(h, 1)).toMatchObject({ round: 2, turn: 1 });
-    expect(h.state.battle!.titular[winner]).toBe(stays);
-    expect(h.state.battle!.titular[loser]).toBe(h.state.battle!.fighters[loser].find((one) => one.hp > 0)!.pokemon.id);
-  });
-
-  it("se cierra en cuanto confirman los dos; el ganador también puede cambiar de titular", () => {
-    const h = toPause();
-    const loser = loserOf(h);
-    const winner: Seat = loser === 1 ? 2 : 1;
-    const other = h.state.battle!.fighters[winner].find((one) => one.pokemon.id !== h.state.battle!.titular[winner] && one.hp > 0)!.pokemon.id;
-    const next = h.state.battle!.fighters[loser].find((one) => one.hp > 0)!.pokemon.id;
-    h.dispatch({ type: "PAUSE_CONFIRM", seat: winner, choice: { titular: other } });
-    expect(h.state.phase).toBe("battle_pause");
-    h.dispatch({ type: "PAUSE_CONFIRM", seat: loser, choice: { titular: next } });
-    expect(h.state.phase).toBe("battle");
-    expect(h.state.battle!.titular).toEqual({ [winner]: other, [loser]: next });
+    expect(h.state.battle!.choosing).toBe(true);
   });
 
 });
 
 describe("el final", () => {
-  const killAll = (h: AuctionHarness, seat: Seat) => {
-    for (const fighter of h.state.battle!.fighters[seat]) fighter.hp = 0;
-    h.state.battle!.titular[seat] = null;
-  };
 
-  it("sin nadie vivo al acabar la pausa, pierde, con el resumen de daño y gasto", () => {
-    const h = toPause();
-    const loser = loserOf(h);
-    killAll(h, loser);
-    h.advance(15_000);
+  it("sin nadie vivo tras caer su titular, pierde, con el resumen de daño y gasto", () => {
+    const h = toBattle();
+    const loser: Seat = 1;
+    for (const fighter of h.state.battle!.fighters[loser]) if (fighter.pokemon.id !== h.state.battle!.titular[loser]) fighter.hp = 0;
+    const last = h.state.battle!.fighters[loser].find((one) => one.pokemon.id === h.state.battle!.titular[loser])!;
+    last.hp = 1;
+    last.status = "poison";
+    playTurn(h);
     const winner: Seat = loser === 1 ? 2 : 1;
     expect(h.state.outcome).toEqual({ winnerSeat: winner, reason: "completed" });
     const ended = h.payloads("game-ended")[0]!;
     expect(ended.winnerSeat).toBe(winner);
     expect(ended.teams[1]).toHaveLength(6);
     expect(ended.auction!.reveal).toHaveLength(12);
-    expect(ended.auction!.damage[winner]).toBeGreaterThan(0);
+    expect(ended.auction!.damage).toEqual(h.state.battle!.damage);
     const spent = ended.auction!.spent;
     expect(spent[1]).toBe(STARTING_MONEY - h.state.money[1]);
     expect(spent[2]).toBe(STARTING_MONEY - h.state.money[2]);
@@ -430,7 +360,7 @@ describe("desconexiones", () => {
   });
 
   it("recargar en cada fase devuelve el estado", () => {
-    for (const make of [toLineup, toBattle, toPause]) {
+    for (const make of [toLineup, toBattle, toReplacing]) {
       const h = make();
       const before = h.view(1).auction;
       h.dispatch({ type: "PLAYER_DISCONNECTED", seat: 1 });
@@ -476,10 +406,6 @@ describe("nada se adelanta en el combate", () => {
     onlyTo(lineup.dispatch({ type: "CHOOSE_LINEUP", seat: 1, order: [...lineup.state.teams[1]] }), 1);
     const fight = toBattle();
     onlyTo(fight.dispatch({ type: "CHOOSE_MOVE", seat: 2, move: moveOf(fight, 2) }), 2);
-    const pause = toPause();
-    const loser = loserOf(pause);
-    const next = pause.state.battle!.fighters[loser].find((one) => one.hp > 0)!.pokemon.id;
-    onlyTo(pause.dispatch({ type: "PAUSE_CONFIRM", seat: loser, choice: { titular: next } }), loser);
   });
 });
 
@@ -502,17 +428,6 @@ describe("recargar tras decidir", () => {
     expect(battle(h, 1).myMove).toBeNull();
   });
 
-  it("quien confirmó la pausa recupera objetos y titular; el rival no", () => {
-    const h = toPause();
-    const loser = loserOf(h);
-    const rival: Seat = loser === 1 ? 2 : 1;
-    const next = h.state.battle!.fighters[loser].find((one) => one.hp > 0)!.pokemon.id;
-    const choice = { items: [], titular: next };
-    h.dispatch({ type: "PAUSE_CONFIRM", seat: loser, choice });
-    expect(battle(h, loser).myPause).toEqual(choice);
-    expect(battle(h, rival).myPause).toBeNull();
-  });
-
   it("la revelación dice si ya confirmé, solo a mí", () => {
     const h = toReveal();
     const effects = h.dispatch({ type: "READY", seat: 1 });
@@ -532,7 +447,8 @@ describe("recargar tras decidir", () => {
 
 describe("partidas al azar, con mensajes inválidos", () => {
   it("siempre terminan, sin PS ni dinero negativos", () => {
-    for (let seed = 1; seed <= 150; seed++) {
+    // Desde #57 elegir al siguiente espera el aviso «¿Sigues ahí?», como un turno: cada partida necesita más pasos, así que se juegan 60.
+    for (let seed = 1; seed <= 60; seed++) {
       const rng = seededRng(seed * 7);
       const h = new AuctionHarness({ seed, catalog, config: AUCTION_TRAPS });
       h.startGame();
@@ -545,8 +461,8 @@ describe("partidas al azar, con mensajes inválidos", () => {
         else if (pick === 3) h.dispatch({ type: "READY", seat });
         else if (pick === 4) h.dispatch({ type: "CHOOSE_LINEUP", seat, order: [...h.state.teams[seat]].reverse() });
         else if (pick === 5) h.dispatch({ type: "CHOOSE_MOVE", seat, move: (["forcejeo", "recuperar", "fire", "hax"] as BattleMove[])[rng.int(4)]! });
-        else if (pick === 6) h.dispatch({ type: "PAUSE_CONFIRM", seat, choice: { titular: h.state.teams[seat][rng.int(6)] ?? 0 } });
-        else if (pick === 7) h.dispatch({ type: "PAUSE_CONFIRM", seat, choice: { titular: 0 } });
+        else if (pick === 6) h.dispatch({ type: "CHOOSE_SWITCH", seat, pokemonId: h.state.teams[seat][rng.int(6)] ?? 0 });
+        else if (pick === 7) h.dispatch({ type: "CHOOSE_SWITCH", seat, pokemonId: 0 });
         else h.advance(500);
         expect(Math.min(h.state.money[1], h.state.money[2])).toBeGreaterThanOrEqual(0);
         for (const s of [1, 2] as const) for (const fighter of h.state.battle?.fighters[s] ?? []) expect(fighter.hp).toBeGreaterThanOrEqual(0);
@@ -555,7 +471,7 @@ describe("partidas al azar, con mensajes inválidos", () => {
       expect(h.state.phase).toBe("finished");
       expect(h.state.outcome?.reason).toBe("completed");
     }
-  }, 120_000);
+  }, 300_000);
 });
 
 describe("«Listo» tardío", () => {
@@ -596,8 +512,8 @@ describe("partidas al azar, con basura y desconexiones", () => {
           () => h.dispatch({ type: "PLAYER_CONNECTED", seat }),
           () => h.dispatch({ type: "CHOOSE_LINEUP", seat, order: junk }),
           () => h.dispatch({ type: "CHOOSE_MOVE", seat, move: junk }),
-          () => h.dispatch({ type: "PAUSE_CONFIRM", seat, choice: junk }),
-          () => h.dispatch({ type: "PAUSE_CONFIRM", seat, choice: { titular: down } }),
+          () => h.dispatch({ type: "CHOOSE_SWITCH", seat, pokemonId: junk }),
+          () => h.dispatch({ type: "CHOOSE_SWITCH", seat, pokemonId: down }),
           () => h.dispatch({ type: "BID", seat, step: null }),
         ];
         events[rng.int(events.length)]!();
@@ -807,14 +723,14 @@ describe("cambiar de Pokémon", () => {
     expect(battle(h, 1)).toMatchObject({ turn: 2, choosing: true, mySwitch: null });
   });
 
-  it("si el que entra cae con el golpe, termina el asalto", () => {
+  it("si el que entra cae con el golpe, hay que elegir otro", () => {
     const h = sturdy(toBattle());
     const next = reserve(h, 1);
     const entering = h.state.battle!.fighters[1].find((one) => one.pokemon.id === next)!;
     entering.hp = 1;
     h.dispatch({ type: "CHOOSE_SWITCH", seat: 1, pokemonId: next });
     h.dispatch({ type: "CHOOSE_MOVE", seat: 2, move: moveOf(h, 2) });
-    expect(h.payloads("battle-round-ended")[0]).toMatchObject({ loser: 1, atLimit: false });
+    expect(h.payloads("battle-fainted")).toEqual([{ fallen: [1], atLimit: false }]);
   });
 
   it("rechaza al que ya pelea, a un debilitado, a uno ajeno y la basura", () => {
@@ -837,55 +753,44 @@ describe("cambiar de Pokémon", () => {
     expect(h.errorCodes(1)).toEqual(["WRONG_PHASE"]);
   });
 
-  it("cambiar sin parar no alarga el asalto: lo cierra el límite de turnos", () => {
+  it("cambiar sin parar no alarga el combate: lo corta el límite de turnos", () => {
     const h = sturdy(toBattle());
     for (let turn = 0; turn < 20; turn++) {
       h.dispatch({ type: "CHOOSE_SWITCH", seat: 1, pokemonId: reserve(h, 1) });
       h.dispatch({ type: "CHOOSE_SWITCH", seat: 2, pokemonId: reserve(h, 2) });
       finishAnimation(h);
     }
-    expect(h.payloads("battle-round-ended")[0]).toMatchObject({ round: 1, atLimit: true });
-    expect(h.state.phase).toBe("battle_pause");
+    expect(h.payloads("battle-fainted")[0]).toMatchObject({ atLimit: true });
+    expect(h.state.battle!.replacing).toHaveLength(1);
   });
 });
 
 describe("habilidades en el motor", () => {
   const titularOf = (h: AuctionHarness, seat: Seat) => h.state.battle!.fighters[seat].find((one) => one.pokemon.id === h.state.battle!.titular[seat])!;
 
-  it("Cura Natural también cura al cambiar de titular en la pausa", () => {
-    const h = toPause();
-    const winner: Seat = loserOf(h) === 1 ? 2 : 1;
-    const out = titularOf(h, winner);
-    out.ability = "natural-cure";
-    out.status = "burn";
-    const other = h.state.battle!.fighters[winner].find((one) => one !== out && one.hp > 0)!.pokemon.id;
-    h.dispatch({ type: "PAUSE_CONFIRM", seat: winner, choice: { titular: other } });
-    h.advance(15_000);
-    expect(h.state.battle!.fighters[winner].find((one) => one.pokemon.id === out.pokemon.id)!.status).toBeNull();
-  });
-
-  it("lo que pasó al empezar el asalto va aparte de lo que pasó al cambiar", () => {
-    const h = toPause();
+  it("al entrar un reemplazo, su habilidad va con su entrada y no se repite en el turno siguiente", () => {
+    const h = toReplacing();
     for (const seat of [1, 2] as const) for (const fighter of h.state.battle!.fighters[seat]) fighter.ability = "intimidate";
-    h.advance(15_000);
-    const [first, second] = [moveOf(h, 1), moveOf(h, 2)];
-    h.dispatch({ type: "CHOOSE_MOVE", seat: 1, move: first });
-    h.dispatch({ type: "CHOOSE_MOVE", seat: 2, move: second });
-    const turn = h.payloads("battle-turn").at(-1)!;
-    expect(turn.roundNotes!.filter((note) => note.kind === "ability")).toHaveLength(2);
-    expect(turn.entryNotes).toEqual([]);
+    const loser = loserOf(h);
+    h.dispatch({ type: "CHOOSE_SWITCH", seat: loser, pokemonId: h.state.battle!.fighters[loser].find((one) => one.hp > 0)!.pokemon.id });
+    const entry = h.payloads("battle-turn").at(-1)!;
+    expect(entry.entryNotes!.filter((note) => note.kind === "ability")).toEqual([{ kind: "ability", seat: loser, ability: "intimidate" }]);
+    finishAnimation(h);
+    h.dispatch({ type: "CHOOSE_MOVE", seat: 1, move: moveOf(h, 1) });
+    h.dispatch({ type: "CHOOSE_MOVE", seat: 2, move: moveOf(h, 2) });
+    expect(h.payloads("battle-turn").at(-1)!.roundNotes).toEqual([]);
   });
 });
 
 describe("el escenario", () => {
-  it("se sortea uno por combate: los dos ven el mismo y no cambia entre asaltos", () => {
+  it("se sortea uno por combate: los dos ven el mismo y no cambia al caer un Pokémon", () => {
     const seen = new Set<string>();
     for (let seed = 1; seed <= 20; seed++) {
-      const h = toPause(seed);
+      const h = toReplacing(seed);
       const scene = battle(h, 1).scene;
       expect(["bosque", "volcan", "playa", "noche"]).toContain(scene);
       expect(battle(h, 2).scene).toBe(scene);
-      h.advance(15_000);
+      h.advance(75_000);
       expect(battle(h, 1).scene).toBe(scene);
       seen.add(scene);
     }

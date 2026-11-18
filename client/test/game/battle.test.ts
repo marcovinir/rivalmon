@@ -1,7 +1,7 @@
 import type { BattleAction, BattleFighterView } from "@pokemon-minigames/shared";
 import { describe, expect, it } from "vitest";
 import { battleSpriteUrl, battleStillUrl } from "../../src/catalog/artwork";
-import { aliveIds, effectivenessLabel, hpTone, turnLines, turnSummary } from "../../src/game/battle";
+import { effectivenessLabel, hpTone, turnLines, turnSummary } from "../../src/game/battle";
 
 const fighter = (id: number, hp: number, maxHp = 100): BattleFighterView => ({ pokemon: { id } as never, hp, maxHp, ability: null, status: null, stages: {} });
 const action = (over: Partial<BattleAction> = {}): BattleAction => ({ actor: 1, move: "flamethrower", moveName: "Lanzallamas", moveType: "fire", damage: 42, critical: false, effectiveness: 1, healed: 0, actorHp: 100, targetHp: 58, missed: false, blocked: null, notes: [], ...over });
@@ -66,11 +66,5 @@ describe("turnLines", () => {
   it("para el lector de pantalla, una sola frase", () => {
     const summary = turnSummary([action(), action({ actor: 2, move: "recover", moveName: "Recuperación", damage: 0, healed: 9 })], names);
     expect(summary).toBe("Charizard, 42 de daño. Mewtwo, recuperó 9 PS.");
-  });
-});
-
-describe("aliveIds", () => {
-  it("solo los vivos", () => {
-    expect(aliveIds([fighter(1, 50), fighter(2, 0), fighter(3, 1)])).toEqual([1, 3]);
   });
 });

@@ -95,6 +95,19 @@ describe("los cuadros presentados", () => {
   });
 });
 
+describe("la caída (#57)", () => {
+  it("tiene su paso al final: la franja lo dice y, si fue por el límite, la barra baja a 0 ahí", () => {
+    const turn = entry({ actions: [{ ...hit, damage: 10, targetHp: 90 }], endNotes: [{ kind: "fainted", seat: 2, atLimit: true }] });
+    const frames = buildBattleFrames(turn.before!, turn, 1);
+    const step = frames.find((frame) => frame.step.kind === "note")!;
+    expect(step.text).toBe("Cuatro se debilitó por el límite de turnos.");
+    expect(step.battle.rivalTeam[0]!.hp).toBe(0);
+    expect(turnLines(turn.actions, turn.names, turn).at(-1)).toBe("Cuatro se debilitó por el límite de turnos.");
+    const knocked = entry({ endNotes: [{ kind: "fainted", seat: 1, atLimit: false }] });
+    expect(buildBattleFrames(knocked.before!, knocked, 1).find((frame) => frame.step.kind === "note")!.text).toBe("¡Uno se debilitó!");
+  });
+});
+
 describe("el efecto de ataque de cada cuadro (#42)", () => {
   const projectiles = (turn: BattleLogEntry, seat: 1 | 2 = 1) => buildBattleFrames(turn.before!, turn, seat).map((frame) => frame.projectile ?? null);
 

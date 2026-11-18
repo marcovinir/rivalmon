@@ -478,21 +478,19 @@ export const BATTLE_TEXT = {
   inBattle: (name: string): string => `${name}, en combate`,
   fainted: (name: string): string => `${name}, debilitado`,
   switchTo: (name: string, percent: number): string => `Cambiar a ${name}, ${percent} % de PS`,
-  roundLabel: (round: number, turn: number, maxTurns: number): string => `Asalto ${round} · Turno ${turn}/${maxTurns}`,
+  /** El contador: el turno y, en los últimos 5 seguidos sin caídas, cuál de ellos es el que se juega ahora. */
+  turnLabel: (turn: number, calmTurns: number, maxTurns: number): string => (calmTurns >= maxTurns - 5 ? `Turno ${turn} · Límite ${calmTurns + 1}/${maxTurns}` : `Turno ${turn}`),
   resolving: "Resolviendo…",
-  pauseTitle: "Pausa entre asaltos",
-  pauseTimer: "Tiempo de la pausa",
-  whoGoesOut: "¿Quién sale a pelear?",
-  nobodyLeft: "No te quedan Pokémon.",
+  whoNext: "¿Quién sale ahora?",
+  replaceSecret: "Tu rival no ve a quién eliges hasta que salga.",
+  rivalReplacing: (name: string): string => `${name} está eligiendo a su siguiente Pokémon…`,
   moveUp: (name: string): string => `Subir ${name}`,
   moveDown: (name: string): string => `Bajar ${name}`,
   position: (name: string, position: number): string => `${name}: posición ${position}`,
   sendOut: (name: string): string => `Sacar a ${name}`,
   hpOf: (name: string): string => `PS de ${name}`,
-  fell: (name: string, atLimit: boolean): string => (atLimit ? `${name} cayó por el límite de turnos.` : `${name} cayó.`),
-  roundVersus: (round: number, mine: string, theirs: string): string => `Asalto ${round}: ${mine} contra ${theirs}.`,
-  turnNews: (round: number, turn: number, summary: string): string => `Asalto ${round}, turno ${turn}: ${summary}`,
-  roundTurn: (round: number, turn: number): string => `Asalto ${round} · Turno ${turn}`,
+  versus: (mine: string, theirs: string): string => `${mine} contra ${theirs}.`,
+  turnNews: (turn: number, summary: string): string => `Turno ${turn}: ${summary}`,
 };
 
 /** «₽ 1.000.000»: siempre con punto de miles, sea cual sea el idioma del navegador. */

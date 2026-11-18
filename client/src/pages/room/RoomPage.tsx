@@ -27,7 +27,6 @@ import { useGame, useServices } from "../../services";
 import { AuctionView } from "./auction/AuctionView";
 import { BattleScreen } from "./auction/BattleScreen";
 import { LineupView } from "./auction/LineupView";
-import { PauseView } from "./auction/PauseView";
 import { RevealView } from "./auction/RevealView";
 import { CountdownView } from "./CountdownView";
 import { RematchLoadingView, RematchNoShow } from "./RematchLoadingView";
@@ -78,21 +77,25 @@ function announcement(view: GameView): string {
   switch (view.phase) {
     case "lineup":
       return BATTLE_TEXT.lineupTitle;
-    case "battle_pause":
-      return BATTLE_TEXT.pauseTitle;
     case "battle": {
       // Una sola frase por turno: el registro completo saturaría a los lectores de pantalla.
       const battle = view.auction?.battle;
       if (!battle) return "";
       const last = view.battleLog[view.battleLog.length - 1];
-      if (!last || last.round !== battle.round) {
+      if (!last) {
+        if (battle.mustReplace) return BATTLE_TEXT.whoNext;
+        if (battle.rivalReplacing) return BATTLE_TEXT.rivalReplacing(view.players.find((player) => player.seat !== view.mySeat)?.username ?? "");
         const nameIn = (team: typeof battle.myTeam, id: number | null) => team.find((one) => one.pokemon.id === id)?.pokemon.names.es ?? "";
-        return BATTLE_TEXT.roundVersus(battle.round, nameIn(battle.myTeam, battle.myTitular), nameIn(battle.rivalTeam, battle.rivalTitular));
+        return BATTLE_TEXT.versus(nameIn(battle.myTeam, battle.myTitular), nameIn(battle.rivalTeam, battle.rivalTitular));
       }
-      // Con el asalto y el turno delante, dos turnos con el mismo daño también se anuncian.
-      const news = BATTLE_TEXT.turnNews(last.round, last.turn, turnSummary(last.actions, last.names, last));
-      const end = view.lastRoundEnd?.round === battle.round ? view.lastRoundEnd : null;
-      return end ? `${news} ${BATTLE_TEXT.fell(last.names[end.loser], end.atLimit)}` : news;
+      // Con el turno delante, dos turnos con el mismo daño también se anuncian; la entrada de un reemplazo no es un turno.
+      const summary = turnSummary(last.actions, last.names, last);
+      const news = last.actions.length === 0 ? summary : BATTLE_TEXT.turnNews(last.turn, summary);
+      // Elegir al siguiente no tiene botones de ataque que reciban el foco: se dice en voz alta.
+      const rivalName = view.players.find((player) => player.seat !== view.mySeat)?.username ?? "";
+      if (battle.mustReplace && battle.myReplacement === null) return `${news} ${BATTLE_TEXT.whoNext}`;
+      if (battle.rivalReplacing && !battle.mustReplace) return `${news} ${BATTLE_TEXT.rivalReplacing(rivalName)}`;
+      return news;
     }
     case "auction": {
       const nameOf = (seat: number | null) => view.players.find((player) => player.seat === seat)?.username ?? "Tu rival";
@@ -150,8 +153,6 @@ function RoomView() {
       return <LineupView />;
     case "battle":
       return <BattleScreen />;
-    case "battle_pause":
-      return <PauseView />;
     case "finished":
       // Si la sala de la revancha caducó porque el rival no entró, no hubo partida: no hay veredicto.
       return view.isRematchRoom && view.ended?.reason === "expired" ? <RematchNoShow /> : <SummaryView />;

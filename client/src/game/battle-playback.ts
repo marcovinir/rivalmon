@@ -38,6 +38,8 @@ export function buildBattleFrames(before: BattleView, entry: BattleLogEntry, myS
     if (note.kind === "failed") return;
     if (note.kind === "recoil" || note.kind === "residual") hp(note.seat, (current) => current - note.damage);
     else if (note.kind === "healed") hp(note.seat, (current) => current + note.amount);
+    // Por el límite cae con PS: la barra baja a 0 en este paso.
+    else if (note.kind === "fainted") hp(note.seat, () => 0);
     else if (note.kind === "status") update(note.seat, (fighter) => ({ ...fighter, status: note.status }));
     else if (note.kind === "woke") update(note.seat, (fighter) => ({ ...fighter, status: null }));
     else if (note.kind === "stat") update(note.seat, (fighter) => {
@@ -79,7 +81,7 @@ export function buildBattleFrames(before: BattleView, entry: BattleLogEntry, myS
       case "note": {
         const names = step.scope === "round" ? entry.roundNames : entry.names;
         text = noteLine(step.note, names, entry.abilityNames);
-        // El room-state inicial del asalto ya incluía sus habilidades de entrada.
+        // El room-state inicial del combate ya incluía sus habilidades de entrada.
         if (step.scope !== "round") applyNote(step.note);
         if (step.lastInAction && step.action) checkpoint(step.action);
         const note = step.note;
