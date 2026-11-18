@@ -11,8 +11,13 @@ const asked = new WeakMap<Endpoints, Promise<boolean>>();
  * Una consulta fallida no se recuerda.
  */
 export function useEmailCodes(): boolean {
+  return useEmailCodesStatus() === true;
+}
+
+/** Lo mismo, pero distingue «aún no se sabe» (`null`) de «apagado» (`false`): para redirigir sin rebotar mientras se consulta. */
+export function useEmailCodesStatus(): boolean | null {
   const { endpoints } = useServices();
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useState<boolean | null>(null);
 
   useEffect(() => {
     let alive = true;
