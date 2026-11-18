@@ -71,6 +71,12 @@ const abilities = Object.fromEntries(rawAbilities.map((raw) => {
   return [raw.name, { es: nameIn("es") ?? en, en }];
 }));
 
-writeFileSync(new URL("../data/moves.snapshot.json", import.meta.url), `${JSON.stringify({ generatedAt: new Date().toISOString(), source: POKEAPI_BASE_URL, moves, abilities, sets })}\n`);
+// Las descripciones (#58) las añade `moves:descriptions`: se conservan las de los movimientos que siguen.
+const file = new URL("../data/moves.snapshot.json", import.meta.url);
+const previous = (JSON.parse(readFileSync(file, "utf8")) as { descriptions?: Record<string, string> }).descriptions ?? {};
+const descriptions = Object.fromEntries(Object.entries(previous).filter(([id]) => id in moves));
+writeFileSync(file, `${JSON.stringify({ generatedAt: new Date().toISOString(), source: POKEAPI_BASE_URL, moves, abilities, sets, descriptions })}\n`);
+const missing = Object.keys(moves).filter((id) => !(id in descriptions)).length;
+if (missing > 0) console.log(`Faltan ${missing} descripciones: ejecuta npm run moves:descriptions -w server.`);
 console.log(`Listo: ${Object.keys(sets).length} Pokémon, ${Object.keys(moves).length} movimientos, ${frequency.size} habilidades.`);
 console.log("Habilidades más frecuentes:", [...frequency].sort((a, b) => b[1] - a[1]).slice(0, 40).map(([name, count]) => `${name} ${count}`).join(", "));

@@ -13,7 +13,8 @@ export const MAX_STILL_HERE = 2;
 export const AUTO_LOT_MS = 2_000;
 /** La revelación: 1,5 s por Pokémon, y se salta si los dos confirman. */
 export const REVEAL_MS = 18_000;
-export const LINEUP_MS = 30_000;
+/** Hay más datos que leer desde #56: los ataques y las estadísticas de cada Pokémon. */
+export const LINEUP_MS = 45_000;
 export const TEAM_SIZE = 6;
 export const LOTS_PER_THIRD = 4;
 /** Lo que se reserva por cada hueco del equipo, para poder completarlo. */

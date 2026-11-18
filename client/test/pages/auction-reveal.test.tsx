@@ -25,6 +25,7 @@ const battleView = (over: Partial<BattleView> = {}): BattleView => ({
   deadline: SERVER_NOW + 18_000,
   confirmed: false,
   myLineup: null,
+  myLineupDraft: null,
   myMove: null,
   mustReplace: false,
   rivalReplacing: false,

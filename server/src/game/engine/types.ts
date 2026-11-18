@@ -104,7 +104,7 @@ export type GameEvent =
   | { type: "PASS"; seat: Seat; turnId?: number }
   | { type: "STILL_HERE"; seat: Seat; turnId: number }
   | { type: "READY"; seat: Seat }
-  | { type: "CHOOSE_LINEUP"; seat: Seat; order: number[] }
+  | { type: "CHOOSE_LINEUP"; seat: Seat; order: number[]; draft?: boolean }
   | { type: "CHOOSE_MOVE"; seat: Seat; move: BattleMove }
   | { type: "CHOOSE_SWITCH"; seat: Seat; pokemonId: number }
   | { type: "LEAVE"; seat: Seat }

@@ -3,7 +3,7 @@ import { SERVER_NOW, event, pokemon } from "./events";
 import { ash, misty } from "./room";
 
 export const fighter = (id: number, name: string, hp = 100, maxHp = 100, over: Partial<BattleFighterView> = {}): BattleFighterView => ({ pokemon: pokemon(id, 400, { names: { es: name, en: name } }), hp, maxHp, ability: null, status: null, stages: {}, ...over });
-export const moveView = (over: Partial<BattleMoveView> & { move: string }): BattleMoveView => ({ name: over.move, type: "normal", category: "physical", power: 80, accuracy: 100, pp: 10, maxPp: 15, effectiveness: 1, effect: null, ...over });
+export const moveView = (over: Partial<BattleMoveView> & { move: string }): BattleMoveView => ({ name: over.move, type: "normal", category: "physical", power: 80, accuracy: 100, pp: 10, maxPp: 15, effectiveness: 1, effect: null, description: null, ...over });
 export const MY_TEAM = [fighter(1, "Uno"), fighter(2, "Dos"), fighter(3, "Tres")];
 export const RIVAL_TEAM = [fighter(4, "Cuatro"), fighter(5, "Cinco"), fighter(6, "Seis")];
 
@@ -18,6 +18,7 @@ export const battleView = (over: Partial<BattleView> = {}): BattleView => ({
   rivalIdle: false,
   confirmed: false,
   myLineup: null,
+  myLineupDraft: null,
   myMove: null,
   mySwitch: null,
   mustReplace: false,

@@ -48,6 +48,8 @@ export interface AuctionBattle {
   turn: number;
   /** Lo que cada uno decidió en el paso actual. Nunca sale hacia el rival antes de resolverse. */
   lineups: Partial<Record<Seat, number[]>>;
+  /** El orden a medias de cada uno (#56), privado: si se acaba el tiempo, los numerados van primero. */
+  lineupDrafts: Partial<Record<Seat, number[]>>;
   moves: Partial<Record<Seat, BattleMove>>;
   switches: Partial<Record<Seat, number>>;
   /** Quién tiene que elegir al siguiente porque se le debilitó el titular, y a quién eligió (privado hasta entrar). */

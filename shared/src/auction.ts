@@ -135,6 +135,10 @@ export interface BattleFighterView {
   ability: { id: string; name: string; description: string; active: boolean } | null;
   status: Status | null;
   stages: Partial<Record<BoostStat, number>>;
+  /** Sus 4 ataques con los PP que le quedan (#56). Solo en mi equipo: los del rival nunca van. */
+  moves?: BattleMoveView[];
+  /** Solo en el equipo rival (#58), como en Showdown: los ataques que ya usó y los PP que gastó. Los demás no van. */
+  revealedMoves?: { move: BattleMove; name: string; type: TypeName; ppUsed: number }[];
 }
 
 export interface BattleMoveView {
@@ -151,6 +155,8 @@ export interface BattleMoveView {
   effectiveness: number | null;
   /** Qué hace además, en una frase; nula si solo hace daño. */
   effect: string | null;
+  /** Su descripción oficial (#58); nula en Forcejeo. */
+  description: string | null;
 }
 
 /**
@@ -176,6 +182,8 @@ export interface BattleView {
   confirmed: boolean;
   /** Lo que yo decidí en este paso, para recuperarlo al recargar. Lo del rival nunca va. */
   myLineup: number[] | null;
+  /** Los Pokémon que ya numeré en la alineación, sin confirmar: se conservan al recargar y, si se acaba el tiempo, van primero. */
+  myLineupDraft: number[] | null;
   myMove: BattleMove | null;
   /** A quién elegí sacar este turno. */
   mySwitch: number | null;

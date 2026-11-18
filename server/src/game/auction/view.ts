@@ -47,6 +47,7 @@ function moveViews(mine: Fighter, rival: Fighter | undefined): BattleMoveView[] 
       maxPp: move.pp,
       effectiveness: rival && move.category !== "status" ? moveEffectiveness(id, rival) : null,
       effect: effectText(id),
+      description: id === STRUGGLE ? null : getMoveBook().descriptions?.[id] ?? null,
     };
   });
 }
@@ -54,6 +55,24 @@ function moveViews(mine: Fighter, rival: Fighter | undefined): BattleMoveView[] 
 function fighterView(fighter: Fighter, catalog: PokemonCatalog): BattleFighterView {
   const stages = Object.fromEntries(Object.entries(fighter.stages).filter(([, stage]) => stage !== 0));
   return { pokemon: toPokemonView(catalog.get(fighter.pokemon.id)!), hp: fighter.hp, maxHp: fighter.maxHp, ability: abilityView(fighter.ability), status: fighter.status, stages };
+}
+
+/** Un Pokémon del rival: de sus ataques, solo los que ya usó (#58), con los PP que gastó. */
+function rivalFighterView(fighter: Fighter, catalog: PokemonCatalog): BattleFighterView {
+  const revealedMoves = fighter.moves.filter((slot) => slot.pp < moveData(slot.id)!.pp).map((slot) => {
+    const move = moveData(slot.id)!;
+    return { move: slot.id, name: move.names.es, type: move.type, ppUsed: move.pp - slot.pp };
+  });
+  return { ...fighterView(fighter, catalog), revealedMoves };
+}
+
+/** Un Pokémon de mi equipo, con sus 4 ataques y los PP que les quedan (#56). La eficacia depende del rival: aquí no va. */
+function myFighterView(fighter: Fighter, catalog: PokemonCatalog): BattleFighterView {
+  const moves = fighter.moves.map(({ id, pp }): BattleMoveView => {
+    const move = moveData(id)!;
+    return { move: id, name: move.names.es, type: move.type, category: move.category, power: move.power, accuracy: move.accuracy, pp, maxPp: move.pp, effectiveness: null, effect: effectText(id), description: getMoveBook().descriptions?.[id] ?? null };
+  });
+  return { ...fighterView(fighter, catalog), moves };
 }
 
 /** El combate para un jugador: de lo que el rival está decidiendo no va nada, ni si ya decidió. */
@@ -84,15 +103,16 @@ function battleView(state: AuctionState, seat: Seat, catalog: PokemonCatalog): B
     rivalIdle: deciding && chosen && !(battle.replacing.length > 0 && !rivalReplacing) && battle.idle[rival].warningUntil !== null,
     confirmed,
     myLineup: state.phase === "lineup" ? structuredClone(battle.lineups[seat] ?? null) : null,
+    myLineupDraft: state.phase === "lineup" ? structuredClone(battle.lineupDrafts[seat] ?? null) : null,
     myMove: battle.moves[seat] ?? null,
     mySwitch: battle.switches[seat] ?? null,
     mustReplace,
     rivalReplacing,
     myReplacement: mustReplace ? battle.replacements[seat] ?? null : null,
     calmTurns: battle.calmTurns,
-    myTeam: battle.fighters[seat].map((fighter) => fighterView(fighter, catalog)),
+    myTeam: battle.fighters[seat].map((fighter) => myFighterView(fighter, catalog)),
     // En orden de compra: su alineación diría quién es su reserva.
-    rivalTeam: state.teams[rival].map((id) => fighterView(battle.fighters[rival].find((fighter) => fighter.pokemon.id === id)!, catalog)),
+    rivalTeam: state.teams[rival].map((id) => rivalFighterView(battle.fighters[rival].find((fighter) => fighter.pokemon.id === id)!, catalog)),
     myTitular: mineId,
     rivalTitular: rivalFighter?.pokemon.id ?? null,
     moves:
