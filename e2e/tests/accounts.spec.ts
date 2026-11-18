@@ -11,8 +11,14 @@ test("olvidé mi contraseña: llega el código, se elige otra y se entra con ell
   await ash.page.goto("/login");
   await ash.page.getByRole("link", { name: "¿Olvidaste tu contraseña?" }).click();
   await ash.page.getByLabel("Email").fill(`  ${ash.email.toUpperCase()} `);
-  await ash.page.getByRole("button", { name: "Enviar código" }).click();
-  await expect(ash.page.getByRole("heading", { name: "Nueva contraseña" })).toBeVisible();
+  // Falló alguna vez en la CI sin dejar rastro (#68): se espera la respuesta del servidor y, si no sigue a la pantalla
+  // siguiente, el error dice el estado y el aviso que se ve, en vez de solo «no apareció».
+  const [response] = await Promise.all([
+    ash.page.waitForResponse((one) => one.url().includes("/auth/password/forgot")),
+    ash.page.getByRole("button", { name: "Enviar código" }).click(),
+  ]);
+  expect(response.status(), `respuesta de /auth/password/forgot: ${await response.text()}`).toBe(202);
+  await expect(ash.page.getByRole("heading", { name: "Nueva contraseña" }), `aviso en pantalla: ${await ash.page.getByRole("alert").allTextContents()}`).toBeVisible();
   await ash.page.getByLabel("Código", { exact: true }).fill(await codeFor(ash));
   await ash.page.getByLabel("Nueva contraseña").fill("otra-clave-123");
   await ash.page.getByRole("button", { name: "Cambiar contraseña" }).click();
