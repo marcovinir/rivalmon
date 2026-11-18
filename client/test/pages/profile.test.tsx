@@ -76,7 +76,7 @@ describe("perfil propio", () => {
 
   it("muestra el resumen: partidas, ganadas, empatadas, perdidas, porcentaje y rachas", async () => {
     const services = fakeServices();
-    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: FULL }));
+    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: FULL, auction: { played: 0, wins: 0, losses: 0, winRate: null } }));
     renderAt("/perfil", services);
     const summary = await screen.findByRole("region", { name: "Resumen" });
     const value = (label: string) => within(summary).getByText(label).nextElementSibling;
@@ -91,7 +91,7 @@ describe("perfil propio", () => {
 
   it("muestra el poder promedio con coma decimal y la mejor partida", async () => {
     const services = fakeServices();
-    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: FULL }));
+    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: FULL, auction: { played: 0, wins: 0, losses: 0, winRate: null } }));
     renderAt("/perfil", services);
     const power = await screen.findByRole("region", { name: "Poder" });
     expect(within(power).getByText("Poder promedio").nextElementSibling).toHaveTextContent("512,5");
@@ -100,7 +100,7 @@ describe("perfil propio", () => {
 
   it("muestra los Pokémon más ganados con las veces que los ganó", async () => {
     const services = fakeServices();
-    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: FULL }));
+    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: FULL, auction: { played: 0, wins: 0, losses: 0, winRate: null } }));
     renderAt("/perfil", services);
     const top = await screen.findByRole("region", { name: "Pokémon más ganados" });
     expect(within(top).getByRole("heading", { name: "Charizard" })).toBeInTheDocument();
@@ -111,7 +111,7 @@ describe("perfil propio", () => {
 
   it("si todavía no ha jugado, lo dice y no muestra cifras vacías", async () => {
     renderAt("/perfil");
-    expect(await screen.findByText("Todavía no has jugado ninguna partida.")).toBeInTheDocument();
+    expect(await screen.findByText("Todavía no has jugado a Doble tipo.")).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Resumen" })).not.toBeInTheDocument();
   });
 
@@ -121,6 +121,7 @@ describe("perfil propio", () => {
       username: "ash",
       avatarId: null,
       stats: { ...NO_STATS, played: 2, losses: 2, winRate: 0 },
+      auction: { played: 0, wins: 0, losses: 0, winRate: null },
     }));
     renderAt("/perfil", services);
     const power = await screen.findByRole("region", { name: "Poder" });
@@ -135,7 +136,7 @@ describe("perfil propio", () => {
     services.endpoints.stats.mine = vi
       .fn()
       .mockRejectedValueOnce(new ApiError(500, "INTERNAL_ERROR"))
-      .mockResolvedValueOnce({ username: "ash", avatarId: null, stats: FULL });
+      .mockResolvedValueOnce({ username: "ash", avatarId: null, stats: FULL, auction: { played: 0, wins: 0, losses: 0, winRate: null } });
     const { user } = renderAt("/perfil", services);
     expect(await screen.findByRole("alert")).toHaveTextContent("Algo falló en el servidor");
     await user.click(screen.getByRole("button", { name: "Reintentar" }));
@@ -154,7 +155,7 @@ describe("perfil propio", () => {
 describe("perfil de otra persona", () => {
   it("pide las estadísticas de ese nombre y muestra su nombre como título", async () => {
     const services = fakeServices();
-    services.endpoints.stats.forUser = vi.fn(async (username: string) => ({ username, avatarId: null, stats: FULL }));
+    services.endpoints.stats.forUser = vi.fn(async (username: string) => ({ username, avatarId: null, stats: FULL, auction: { played: 0, wins: 0, losses: 0, winRate: null } }));
     renderAt("/jugador/misty", services);
     expect(await screen.findByRole("heading", { name: "misty" })).toBeInTheDocument();
     expect(services.endpoints.stats.forUser).toHaveBeenCalledExactlyOnceWith("misty");
@@ -164,7 +165,7 @@ describe("perfil de otra persona", () => {
 
   it("no muestra el historial ni lo pide", async () => {
     const services = fakeServices();
-    services.endpoints.stats.forUser = vi.fn(async (username: string) => ({ username, avatarId: null, stats: FULL }));
+    services.endpoints.stats.forUser = vi.fn(async (username: string) => ({ username, avatarId: null, stats: FULL, auction: { played: 0, wins: 0, losses: 0, winRate: null } }));
     renderAt("/jugador/misty", services);
     await screen.findByRole("heading", { name: "misty" });
     expect(screen.queryByRole("heading", { name: "Historial" })).not.toBeInTheDocument();
@@ -173,7 +174,7 @@ describe("perfil de otra persona", () => {
 
   it("si todavía no ha jugado, lo dice en tercera persona", async () => {
     renderAt("/jugador/misty");
-    expect(await screen.findByText("Todavía no ha jugado ninguna partida.")).toBeInTheDocument();
+    expect(await screen.findByText("Todavía no ha jugado a Doble tipo.")).toBeInTheDocument();
   });
 
   it("un jugador que no existe se explica y lleva de vuelta al lobby", async () => {
@@ -198,7 +199,7 @@ describe("perfil de otra persona", () => {
 describe("historial", () => {
   const withHistory = (...pages: { games: HistoryEntry[]; nextCursor: string | null }[]) => {
     const services = fakeServices();
-    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: FULL }));
+    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: FULL, auction: { played: 0, wins: 0, losses: 0, winRate: null } }));
     const history = vi.fn();
     for (const page of pages) history.mockResolvedValueOnce(page);
     services.endpoints.stats.history = history;
@@ -346,7 +347,7 @@ describe("historial", () => {
   it("sin partidas explica que aparecerán aquí y ofrece crear una sala", async () => {
     const services = withHistory({ games: [], nextCursor: null });
     const { user } = renderAt("/perfil", services);
-    expect(await screen.findByText("Cuando juegues, tus partidas aparecerán aquí.")).toBeInTheDocument();
+    expect(await screen.findByText("Cuando juegues a Doble tipo, tus partidas aparecerán aquí.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Crear una sala" }));
     expect(screen.getByTestId("location")).toHaveTextContent("/");
   });

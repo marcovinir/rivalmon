@@ -8,6 +8,7 @@ import { loadCatalog } from "./catalog/pokemon-catalog.js";
 import { loadEnv } from "./config/env.js";
 import { createPrismaClient } from "./db/prisma.js";
 import { createPrismaGameRepository } from "./game/prisma-game-repository.js";
+import { PrismaAuctionHistory } from "./game/prisma-auction-history.js";
 import { systemClock, timerScheduler } from "./game/ports.js";
 import { cryptoRng } from "./game/rng.js";
 import { RoomManager } from "./game/room-manager.js";
@@ -22,6 +23,8 @@ const prisma = createPrismaClient(env.DATABASE_URL, {
   onPoolError: (error) => console.warn(`Base de datos: se cerró una conexión inactiva (${error.message})`),
 });
 const repository = createPrismaGameRepository(prisma);
+// Las partidas de Subasta Pokémon entre dos cuentas (#40).
+const auctionHistory = new PrismaAuctionHistory(prisma);
 
 // Las salas viven en memoria: lo que quedó a medias antes de reiniciar ya no se puede retomar.
 const abandoned = await repository.abandonUnfinished();
@@ -45,6 +48,7 @@ const roomManager = new RoomManager({
   scheduler: timerScheduler,
   broadcaster,
   repository,
+  auctionHistory,
   catalog,
   rng: cryptoRng,
   store: new InMemoryRoomStore(),

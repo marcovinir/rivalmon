@@ -75,7 +75,7 @@ test("un invitado y una cuenta juegan una partida completa; el invitado recarga 
 
     // La partida no cuenta para la cuenta ni dejó ninguna fila.
     await ash.page.goto("/perfil");
-    await expect(ash.page.getByText("Todavía no has jugado ninguna partida.")).toBeVisible();
+    await expect(ash.page.getByText("Todavía no has jugado a Doble tipo.")).toBeVisible();
     await expect(fact(ash.page, "Partidas")).toHaveCount(0);
     expect(await gamesWithRoomCode(code)).toBe(0);
   } finally {

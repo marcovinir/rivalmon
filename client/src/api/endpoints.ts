@@ -3,7 +3,7 @@ import type {
   CreateRoomRequest,
   CreateRoomResponse,
   GamePhase,
-  HistoryPage,
+  AuctionHistoryResponse, HistoryPage,
   PokemonFact,
   PublicRoomInfo,
   StatsResponse,
@@ -83,6 +83,8 @@ export interface Endpoints {
     forUser(username: string): Promise<StatsResponse>;
     /** Tus partidas completadas, de la más reciente a la más antigua; `before` es el cursor de la página anterior. */
     history(options?: { before?: string | null; limit?: number }): Promise<HistoryPage>;
+    /** Tus últimas subastas (#40), la más reciente primero. */
+    auctionHistory(): Promise<AuctionHistoryResponse>;
   };
 }
 
@@ -162,6 +164,7 @@ export function createEndpoints(api: ApiClient): Endpoints {
         const text = query.toString();
         return api.request<HistoryPage>("GET", `/stats/history${text ? `?${text}` : ""}`);
       },
+      auctionHistory: () => api.request<AuctionHistoryResponse>("GET", "/stats/auction/history"),
     },
   };
 }

@@ -137,7 +137,7 @@ describe("StatTile con anillo", () => {
 describe("perfil (etapa 6)", () => {
   it("la cabecera lleva un avatar grande decorativo junto al título", async () => {
     const services = fakeServices();
-    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: STATS }));
+    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: STATS, auction: { played: 0, wins: 0, losses: 0, winRate: null } }));
     renderProfile("/perfil", services);
     expect(await screen.findByRole("heading", { level: 1, name: "Tu perfil" })).toBeInTheDocument();
     expect(screen.getByText("AS")).toHaveAttribute("aria-hidden", "true");
@@ -145,7 +145,7 @@ describe("perfil (etapa 6)", () => {
 
   it("el porcentaje de victorias tiene su anillo", async () => {
     const services = fakeServices();
-    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: STATS }));
+    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: STATS, auction: { played: 0, wins: 0, losses: 0, winRate: null } }));
     renderProfile("/perfil", services);
     const summary = await screen.findByRole("region", { name: "Resumen" });
     const tile = within(summary).getByText("Victorias").parentElement!;
@@ -154,7 +154,7 @@ describe("perfil (etapa 6)", () => {
 
   it("los Pokémon más ganados forman un podio con arte oficial y medallas decorativas", async () => {
     const services = fakeServices();
-    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: STATS }));
+    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: STATS, auction: { played: 0, wins: 0, losses: 0, winRate: null } }));
     renderProfile("/perfil", services);
     const top = await screen.findByRole("region", { name: "Pokémon más ganados" });
     const images = [...top.querySelectorAll("img:not([aria-hidden='true'])")];
@@ -167,7 +167,7 @@ describe("perfil (etapa 6)", () => {
 
   it("cada partida del historial lleva una insignia de color por resultado y el avatar del rival", async () => {
     const services = fakeServices();
-    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: STATS }));
+    services.endpoints.stats.mine = vi.fn(async () => ({ username: "ash", avatarId: null, stats: STATS, auction: { played: 0, wins: 0, losses: 0, winRate: null } }));
     services.endpoints.stats.history = vi.fn(async () => ({
       games: [game({ id: "a" }), game({ id: "b", result: "drawn", myScore: 500, opponentScore: 500 }), game({ id: "c", result: "lost", myScore: 0, opponentScore: 400 })],
       nextCursor: null,

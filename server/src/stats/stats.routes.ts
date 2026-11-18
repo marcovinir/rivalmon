@@ -28,6 +28,10 @@ export function createStatsRouter({ service, tokens }: StatsRouterDeps): Router 
     res.json(await service.getHistory(getAuth(res).userId, { limit, before }));
   });
 
+  router.get("/stats/auction/history", requireAccount, async (_req, res) => {
+    res.json(await service.getAuctionHistory(getAuth(res).userId));
+  });
+
   // Bajo /users y no bajo /stats/:username: "history" es un nombre de usuario válido y chocaría.
   router.get("/users/:username/stats", requireAccount, async (req, res) => {
     const username = String(req.params.username);

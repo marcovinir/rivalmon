@@ -20,11 +20,12 @@ const sqlOf = (name: string): string => readFileSync(join(migrationsDir, name, "
  * Las migraciones no califican `public` ni crean extensiones, así que con `search_path` apuntando al esquema caen en él.
  */
 describe("la migración de las cuentas con correo", () => {
-  const last = migrations.at(-1)!;
-  const previous = migrations.slice(0, -1);
+  // Por su nombre, no por ser la última: después vinieron otras (la del historial de la subasta, #40).
+  const last = "20261103000000_email_codes";
+  const previous = migrations.slice(0, migrations.indexOf(last));
 
-  it("es la última y se llama como lo que hace", () => {
-    expect(last).toMatch(/^20261103000000_email_codes$/);
+  it("existe y se llama como lo que hace", () => {
+    expect(migrations).toContain(last);
   });
 
   it("las cuentas que ya existían conservan sus datos y quedan sin verificar, como las nuevas", async () => {

@@ -1,9 +1,9 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import type { RoomConfig, RoomStateView, Seat } from "@pokemon-minigames/shared";
 import type { PokemonCatalog } from "../catalog/pokemon-catalog.js";
 import { type Effect, type GameEvent, type GameOutcome, type RoundRecord, SEATS } from "./engine/types.js";
 import { type EngineState, type GameEngine, type SeatOccupant, engineFor } from "./game-engine.js";
-import type { Broadcaster, Clock, GameRepository, Scheduler, SilhouetteRegistry } from "./ports.js";
+import type { AuctionHistoryRepository, Broadcaster, Clock, GameRepository, Scheduler, SilhouetteRegistry } from "./ports.js";
 import type { Rng } from "./rng.js";
 
 /** 16 bytes aleatorios en base64url: el token de la URL de una silueta (no sale del número del Pokémon). */
@@ -14,6 +14,8 @@ export interface GameRoomPorts {
   scheduler: Scheduler;
   broadcaster: Broadcaster;
   repository: GameRepository;
+  /** Dónde se guardan las partidas de subasta (#40); sin él, no se guardan. */
+  auctionHistory?: AuctionHistoryRepository;
   catalog: PokemonCatalog;
   rng: Rng;
   logger?: { error(message: string, error?: unknown): void };
@@ -224,6 +226,23 @@ export class GameRoom {
         case "persist_round": {
           const record: RoundRecord = effect.record;
           this.persist(`guardar la ronda ${record.number}`, (gameId) => repository.saveRound(gameId, record));
+          break;
+        }
+        case "persist_auction": {
+          const players = SEATS.map((seat) => this.state.players[seat]);
+          // Con un invitado no queda rastro para nadie, como en Doble tipo.
+          if (!this.ports.auctionHistory || players.some((player) => !player || player.guest === true)) break;
+          const { record } = effect;
+          const input = {
+            id: randomUUID(),
+            endedAt: new Date(this.ports.clock.now()),
+            roomCode: this.code,
+            reason: record.reason,
+            winnerUserId: record.winnerSeat ? (this.state.players[record.winnerSeat]?.userId ?? null) : null,
+            players: SEATS.map((seat) => ({ userId: this.state.players[seat]!.userId, seat, ...record.players[seat] })),
+          };
+          const history = this.ports.auctionHistory;
+          this.enqueue("guardar la subasta", () => history.save(input));
           break;
         }
         case "persist_end": {
